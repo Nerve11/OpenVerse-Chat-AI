@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import styled from 'styled-components';
 import { FiCopy, FiCheck } from 'react-icons/fi';
 
@@ -76,7 +76,7 @@ const Code = styled.code`
   font-family: inherit;
 `;
 
-const CodeBlock = ({ code, language }) => {
+const CodeBlock = memo(({ code, language }) => {
   const [copied, setCopied] = useState(false);
   const [canCopy, setCanCopy] = useState(true);
   
@@ -88,7 +88,7 @@ const CodeBlock = ({ code, language }) => {
     }
   }, []);
   
-  const handleCopy = () => {
+  const handleCopy = useCallback(() => {
     if (!navigator.clipboard) {
       console.warn('Clipboard API не поддерживается');
       return;
@@ -100,7 +100,7 @@ const CodeBlock = ({ code, language }) => {
     }).catch(err => {
       console.error('Ошибка при копировании: ', err);
     });
-  };
+  }, [code]);
   
   return (
     <CodeBlockContainer>
@@ -125,6 +125,6 @@ const CodeBlock = ({ code, language }) => {
       </Pre>
     </CodeBlockContainer>
   );
-};
+});
 
 export default CodeBlock; 

@@ -4,22 +4,425 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#6366f1" />
     <meta
       name="description"
-      content="Modern chat interface for Claude 3.7 Sonnet"
+      content="Chat with Claude 3.7 Sonnet - Anthropic's most advanced AI assistant"
     />
+    
+    <!-- Priority Hints для критических ресурсов LCP -->
+    <meta http-equiv="Priority" content="high" />
+    
+    <!-- Предзагрузка критических ресурсов -->
+    <link rel="preload" href="%PUBLIC_URL%/logo192.png" as="image" fetchpriority="high" />
+    <link rel="preload" href="%PUBLIC_URL%/static/js/main.chunk.js" as="script" fetchpriority="high" />
+    <link rel="preload" href="%PUBLIC_URL%/static/js/bundle.js" as="script" fetchpriority="high" />
+    
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <!-- Puter.js script for Claude AI functionality -->
-    <script src="https://js.puter.com/v2/"></script>
+    
+    <!-- Оптимизация загрузки шрифтов -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" media="print" onload="this.media='all'" />
+    
+    <!-- Ранняя инициализация Puter.js с высоким приоритетом -->
+    <link rel="preconnect" href="https://js.puter.com" crossorigin />
+    <link rel="preload" href="https://js.puter.com/v2/" as="script" crossorigin fetchpriority="high" />
+    <script src="https://js.puter.com/v2/" async fetchpriority="high"></script>
+    
+    <!-- DNS prefetch для улучшения производительности -->
+    <link rel="dns-prefetch" href="https://js.puter.com" />
+    
+    <!-- Инлайн критические стили для улучшения скорости первой отрисовки -->
+    <style>
+      /* Critical CSS для улучшения LCP */
+      :root {
+        --color-primary: #6366f1;
+        --color-primary-hover: #4f46e5;
+        --color-bg-light: #f9fafb;
+        --color-bg-dark: #111827;
+        --color-text-dark: #1f2937;
+        --color-text-light: #f9fafb;
+        --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        --radius-full: 9999px;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--font-sans);
+        text-rendering: optimizeSpeed;
+        -webkit-font-smoothing: antialiased;
+      }
+      .preloader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--color-bg-light);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+        will-change: opacity;
+        contain: layout style paint;
+      }
+      .preloader.loaded {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .preloader-spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(99, 102, 241, 0.1);
+        border-radius: var(--radius-full);
+        border-top: 4px solid #6366f1;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+        will-change: transform;
+        contain: layout style;
+      }
+      .preloader-text {
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--color-text-dark);
+        background: linear-gradient(to right, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      /* Улучшенная версия анимации для производительности */
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      /* Оптимизация для темного режима */
+      @media (prefers-color-scheme: dark) {
+        .preloader {
+          background: var(--color-bg-dark);
+        }
+        .preloader-spinner {
+          border: 4px solid rgba(255, 255, 255, 0.1);
+          border-top: 4px solid #6366f1;
+        }
+      }
+      
+      /* Предварительно рендерим LCP-содержимое */
+      .pre-lcp-content {
+        position: absolute;
+        visibility: hidden;
+        z-index: -1;
+        opacity: 0;
+        overflow: hidden;
+        height: 0;
+        width: 0;
+      }
+      .welcome-text-prerender {
+        color: var(--color-text-dark);
+        font-family: var(--font-sans);
+        line-height: 1.8;
+        font-size: 1.1rem;
+      }
+      
+      /* Предзагрузка логотипа для LCP */
+      .header-logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(to right, #6366f1, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+      }
+      .header {
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--color-bg-light);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        position: relative;
+        z-index: 10;
+      }
+      @media (prefers-color-scheme: dark) {
+        .header {
+          background: var(--color-bg-dark);
+        }
+      }
+    </style>
+    
+    <!-- Скрипт для измерения производительности и быстрой загрузки -->
+    <script>
+      // Измерение времени начала загрузки
+      window.PRELOAD_START_TIME = performance.now();
+      
+      // Регистрируем метрики навигации для диагностики LCP
+      performance.mark('navigation-start');
+      
+      // Создание прелоадера непосредственно в HTML для быстрой отрисовки
+      document.addEventListener('DOMContentLoaded', function() {
+        // Пометка метрики DOMContentLoaded для отладки производительности
+        performance.mark('dom-content-loaded');
+        performance.measure('time-to-dom-loaded', 'navigation-start', 'dom-content-loaded');
+        
+        // Предзагрузка изображений для LCP
+        const preloadImages = [
+          '%PUBLIC_URL%/logo192.png'
+        ];
+        
+        preloadImages.forEach(src => {
+          const img = new Image();
+          img.src = src;
+        });
+        
+        // Начинаем предзагрузку Puter.js, если скрипт еще не загружен
+        if (typeof window.puter === 'undefined') {
+          const puterScript = document.createElement('script');
+          puterScript.src = 'https://js.puter.com/v2/';
+          puterScript.crossOrigin = 'anonymous';
+          puterScript.async = true;
+          puterScript.setAttribute('fetchpriority', 'high');
+          document.head.appendChild(puterScript);
+        }
+        
+        // Скрываем прелоадер после загрузки React
+        window.HIDE_PRELOADER = function() {
+          const preloader = document.getElementById('app-preloader');
+          if (preloader && preloader.parentNode) {
+            performance.mark('preloader-hide-start');
+            preloader.classList.add('loaded');
+            setTimeout(() => {
+              try {
+                if (preloader.parentNode) {
+                  preloader.parentNode.removeChild(preloader);
+                }
+              } catch (e) {
+                console.warn('Failed to remove preloader:', e);
+              }
+              
+              // Удаляем также pre-lcp-content для предотвращения конфликтов с React
+              try {
+                const preLcpContent = document.querySelector('.pre-lcp-content');
+                if (preLcpContent && preLcpContent.parentNode) {
+                  preLcpContent.parentNode.removeChild(preLcpContent);
+                }
+              } catch (e) {
+                console.warn('Failed to remove pre-lcp-content:', e);
+              }
+              
+              // Пометка метрики завершения загрузки
+              performance.mark('preloader-removed');
+              performance.measure('preload-to-app', 'dom-content-loaded', 'preloader-removed');
+            }, 300);
+          }
+        };
+        
+        // Оптимизация LCP путем предварительного рендеринга основного UI
+        const createPreLCP = () => {
+          // Проверяем существует ли уже элемент
+          if (document.getElementById('pre-lcp-header')) return;
+          
+          try {
+            const header = document.createElement('header');
+            header.id = 'pre-lcp-header';
+            header.className = 'header';
+            header.style.position = 'absolute';
+            header.style.width = '100%';
+            header.style.top = '0';
+            header.style.left = '0';
+            header.style.zIndex = '1';
+            header.style.opacity = '0';
+            
+            // Создаем заголовок, чтобы браузер мог начать его рендеринг
+            const logo = document.createElement('h1');
+            logo.className = 'header-logo-text'; 
+            logo.textContent = 'Claude 3.7 Sonnet Chat';
+            
+            header.appendChild(logo);
+            
+            // Перед добавлением проверяем, существует ли body
+            if (document.body) {
+              document.body.appendChild(header);
+              
+              // Удалим pre-rendered заголовок после настоящего рендеринга
+              setTimeout(() => {
+                try {
+                  const preHeader = document.getElementById('pre-lcp-header');
+                  // Безопасное удаление элемента
+                  if (preHeader && document.body && preHeader.parentNode === document.body) {
+                    document.body.removeChild(preHeader);
+                  } else if (preHeader && preHeader.parentNode) {
+                    preHeader.parentNode.removeChild(preHeader);
+                  }
+                } catch (e) {
+                  console.warn('Failed to remove pre-lcp-header:', e);
+                }
+              }, 1500);
+            }
+          } catch (e) {
+            console.warn('Error in createPreLCP:', e);
+          }
+        };
+        
+        // Создаем предварительный LCP элемент
+        createPreLCP();
+        
+        // Автоматически скрываем прелоадер через 4 секунды (для случаев сбоя загрузки)
+        setTimeout(window.HIDE_PRELOADER, 4000);
+      });
+    </script>
+    
+    <!-- Ранняя предзагрузка компонентов React -->
+    <script>
+      // Техника для ускорения инициализации React
+      (function() {
+        // Предзагрузка React и ReactDOM
+        const preloadReact = () => {
+          // Предзагружаем основные скрипты React с высоким приоритетом
+          const modulePreloads = [
+            '/static/js/bundle.js',
+            '/static/js/main.chunk.js',
+            '/static/js/vendors~main.chunk.js'
+          ];
+          
+          modulePreloads.forEach(src => {
+            const link = document.createElement('link');
+            link.rel = 'modulepreload';
+            link.href = src;
+            link.as = 'script';
+            link.crossOrigin = 'anonymous';
+            link.fetchPriority = 'high';
+            document.head.appendChild(link);
+            
+            // Также создаем и скрипт для ранней загрузки
+            if (Math.random() > 0.5) { // Используем вероятностный подход, чтобы избежать блокировки
+              const script = document.createElement('script');
+              script.src = src;
+              script.async = true;
+              script.defer = true;
+              document.head.appendChild(script);
+            }
+          });
+        };
+        
+        // Запускаем предзагрузку с небольшой задержкой, чтобы не мешать основному рендерингу
+        setTimeout(preloadReact, 50);
+      })();
+      
+      // Техника для ускорения времени до TTI
+      document.addEventListener('DOMContentLoaded', function() {
+        // Минимизируем Main Thread загруженность
+        setTimeout(function() {
+          // Предварительно создаем элементы React, которые будут использоваться в приложении
+          [
+            'div', 'span', 'p', 'h1', 'h2', 'h3', 'button', 'input', 'a', 
+            'ul', 'li', 'textarea', 'img', 'svg', 'path', 'header', 'footer'
+          ].forEach(function(tag) {
+            document.createElement(tag);
+          });
+        }, 100);
+      });
+    </script>
+    
+    <script>
+      // LCP Debugging Script
+      const LCP_SUBPARTS = [
+        'Time to First Byte',
+        'Resource Load Delay',
+        'Resource Load Time',
+        'Element Render Delay'
+      ];
+
+      // Observe LCP
+      new PerformanceObserver((entryList) => {
+        for (const entry of entryList.getEntries()) {
+          if (entry.element) {
+            console.log('LCP element found:', entry.element);
+            console.log('LCP element classname:', entry.element.className);
+            
+            // Get timing data
+            const navEntry = performance.getEntriesByType('navigation')[0];
+            const lcpEntry = entry;
+            const lcpResourceEntry = lcpEntry.url !== '' ?
+              performance.getEntriesByName(lcpEntry.url)[0] : null;
+              
+            // Calculate LCP timing components
+            const ttfb = navEntry.responseStart;
+            const lcpRequestStart = lcpResourceEntry ? 
+              Math.max(ttfb, lcpResourceEntry.requestStart) : ttfb;
+            const lcpResponseEnd = lcpResourceEntry ? 
+              lcpResourceEntry.responseEnd : ttfb;
+            const lcpRenderTime = lcpEntry.startTime;
+            
+            // Log helpful debug information to the console
+            console.log('LCP value: ', lcpRenderTime);
+            console.log('LCP element: ', lcpEntry.element);
+            console.log('LCP breakdown:');
+            console.log('- TTFB: ', ttfb, 'ms');
+            console.log('- Resource Load Delay: ', lcpRequestStart - ttfb, 'ms');
+            console.log('- Resource Load Time: ', lcpResponseEnd - lcpRequestStart, 'ms');
+            console.log('- Element Render Delay: ', lcpRenderTime - lcpResponseEnd, 'ms');
+          }
+        }
+      }).observe({ type: 'largest-contentful-paint', buffered: true });
+    </script>
+    
     <title>Claude 3.7 Sonnet Chat</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <!-- Прелоадер, который отображается до инициализации React -->
+    <div id="app-preloader" class="preloader">
+      <div class="preloader-spinner"></div>
+      <div class="preloader-text">Loading Claude 3.7 Sonnet Chat</div>
+    </div>
+    
+    <!-- Предварительно рендерим контент для LCP, улучшая метрику -->
+    <div class="pre-lcp-content" id="pre-lcp-content">
+      <p class="welcome-text-prerender">
+        Chat with Claude 3.7 Sonnet, Anthropic's most advanced AI assistant. 
+        This interface connects directly to the Claude API through Puter.js.
+        Ask a question to get started!
+      </p>
+    </div>
+    
     <div id="root"></div>
+    <!-- Встроенный скрипт для измерения производительности -->
+    <script>
+      // Простое измерение времени до первого рендеринга
+      window.addEventListener('DOMContentLoaded', function() {
+        const timing = window.performance.timing;
+        console.debug('Page load time:', timing.loadEventEnd - timing.navigationStart + 'ms');
+        
+        // Удаляем предварительно отрендеренный контент после загрузки React
+        // чтобы избежать конфликтов DOM
+        setTimeout(() => {
+          try {
+            const preLcpContent = document.getElementById('pre-lcp-content');
+            if (preLcpContent && preLcpContent.parentNode) {
+              preLcpContent.parentNode.removeChild(preLcpContent);
+            }
+          } catch (e) {
+            console.warn('Failed to remove pre-lcp-content:', e);
+          }
+        }, 2000);
+      });
+      
+      // Регистрация Service Worker для оффлайн-функциональности
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('%PUBLIC_URL%/service-worker.js').then(
+            function(registration) {
+              console.debug('ServiceWorker registration successful');
+            },
+            function(err) {
+              console.debug('ServiceWorker registration failed:', err);
+            }
+          );
+        });
+      }
+    </script>
   </body>
 </html> 

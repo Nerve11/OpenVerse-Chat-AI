@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo, useCallback, memo } from 'react';
 import styled, { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import ChatInterface from './components/ChatInterface';
 import ThemeToggle from './components/ThemeToggle';
@@ -20,6 +20,7 @@ const AppContainer = styled(motion.div)`
     : `radial-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px)`
   };
   background-size: 20px 20px;
+  containment: layout style;
 `;
 
 const Header = styled.header`
@@ -31,6 +32,7 @@ const Header = styled.header`
   box-shadow: ${props => props.theme.shadowMedium};
   position: relative;
   z-index: 10;
+  contain: layout style paint;
   
   /* Добавляем тонкую полоску внизу */
   &::after {
@@ -140,7 +142,7 @@ const ConnectionStatus = styled.div`
   }
 `;
 
-const Footer = styled.footer`
+const Footer = memo(styled.footer`
   padding: 1rem 2rem;
   text-align: center;
   font-size: 0.875rem;
@@ -169,81 +171,150 @@ const Footer = styled.footer`
       text-decoration: underline;
     }
   }
-`;
+`);
 
-const App = () => {
-  const [puterStatus, setPuterStatus] = useState('loading'); // 'loading', 'loaded', 'error'
+// Мемоизированный компонент логотипа
+const AppLogo = memo(() => (
+  <Logo>
+    <LogoIcon>
+      <FiMessageCircle />
+    </LogoIcon>
+    <LogoText>Claude 3.7 Sonnet Chat</LogoText>
+  </Logo>
+));
 
-  useEffect(() => {
-    // Check if puter is loaded
-    const checkPuter = () => {
-      if (typeof window.puter !== 'undefined') {
-        setPuterStatus('loaded');
-        document.title = 'Claude 3.7 Sonnet Chat';
-      } else {
-        setPuterStatus('error');
-        document.title = 'Connection Error - Claude Chat';
-      }
-    };
-    
-    // Check immediately
-    checkPuter();
-    
-    // And also after a delay to ensure script has time to load
-    const timeoutId = setTimeout(checkPuter, 3000);
-    
-    return () => clearTimeout(timeoutId);
-  }, []);
-
-  return (
-    <CustomThemeProvider>
-      <ThemedApp puterStatus={puterStatus} setPuterStatus={setPuterStatus} />
-    </CustomThemeProvider>
-  );
-};
-
-// Component that uses the theme context
-const ThemedApp = ({ puterStatus, setPuterStatus }) => {
-  const { theme, isDark, toggleTheme } = useContext(ThemeContext);
-
-  // Определяем текст статуса
-  const getStatusText = (status) => {
+// Мемоизированный компонент статуса соединения
+const StatusIndicator = memo(({ status }) => {
+  // Мемоизация текста статуса
+  const statusText = useMemo(() => {
     switch(status) {
       case 'loading': return 'Connecting...';
       case 'loaded': return 'Connected';
       case 'error': return 'Connection Error';
       default: return 'Unknown Status';
     }
-  };
+  }, [status]);
+  
+  return (
+    <ConnectionStatus status={status}>
+      {statusText}
+    </ConnectionStatus>
+  );
+});
+
+const App = ({ puterLoaded, puterTimeout }) => {
+  const [puterStatus, setPuterStatus] = useState(
+    puterLoaded ? 'loaded' : puterTimeout ? 'error' : 'loading'
+  );
+
+  // Оптимизированный эффект с контролем производительности
+  useEffect(() => {
+    // Если уже получили статус из пропсов, используем его
+    if (puterLoaded) {
+      setPuterStatus('loaded');
+      document.title = 'Claude 3.7 Sonnet Chat';
+      return;
+    }
+    
+    if (puterTimeout) {
+      setPuterStatus('error');
+      document.title = 'Connection Error - Claude Chat';
+      return;
+    }
+    
+    // Проверяем только если статус еще 'loading'
+    if (puterStatus === 'loading') {
+      const checkPuter = () => {
+        if (typeof window.puter !== 'undefined') {
+          setPuterStatus('loaded');
+          document.title = 'Claude 3.7 Sonnet Chat';
+          
+          // Добавляем данные для производительности
+          if (window.performance && window.performance.mark) {
+            window.performance.mark('puter-loaded');
+          }
+        } else {
+          setPuterStatus('error');
+          document.title = 'Connection Error - Claude Chat';
+        }
+      };
+      
+      // Регистрируем начало загрузки для метрик производительности
+      if (window.performance && window.performance.mark) {
+        window.performance.mark('puter-load-start');
+      }
+      
+      // Проверяем сразу
+      checkPuter();
+      
+      // И через три секунды для надежности
+      const timeoutId = setTimeout(checkPuter, 3000);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [puterStatus, puterLoaded, puterTimeout]);
+
+  // Мемоизированный обработчик изменения статуса
+  const handlePuterStatusChange = useCallback((newStatus) => {
+    setPuterStatus(newStatus);
+    
+    // Обновляем заголовок страницы
+    if (newStatus === 'loaded') {
+      document.title = 'Claude 3.7 Sonnet Chat';
+    } else if (newStatus === 'error') {
+      document.title = 'Connection Error - Claude Chat';
+    }
+  }, []);
 
   return (
-    <StyledThemeProvider theme={{...theme, isDark}}>
-      <AppContainer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Header>
-          <Logo>
-            <LogoIcon>
-              <FiMessageCircle />
-            </LogoIcon>
-            <LogoText>Claude 3.7 Sonnet Chat</LogoText>
-          </Logo>
-          
-          <ConnectionStatus status={puterStatus}>
-            {getStatusText(puterStatus)}
-          </ConnectionStatus>
-          
-          <ThemeToggle darkMode={isDark} toggleDarkMode={toggleTheme} />
-        </Header>
-        <ChatInterface onPuterStatusChange={setPuterStatus} />
-        <Footer>
-          Powered by <a href="https://anthropic.com/claude" target="_blank" rel="noopener noreferrer">Anthropic's Claude 3.7 Sonnet</a> via Puter.js | {new Date().getFullYear()}
-        </Footer>
-      </AppContainer>
-    </StyledThemeProvider>
+    <CustomThemeProvider>
+      <ThemedApp 
+        puterStatus={puterStatus} 
+        onPuterStatusChange={handlePuterStatusChange} 
+      />
+    </CustomThemeProvider>
   );
 };
 
-export default App; 
+// Оптимизированный компонент с мемоизацией для ThemeContext
+const ThemedApp = memo(({ puterStatus, onPuterStatusChange }) => {
+  const { theme, isDark, toggleTheme } = useContext(ThemeContext);
+  
+  // Мемоизируем год для footer
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  // Анимационные параметры, мемоизированные для избежания ненужных ререндеров
+  const animationProps = useMemo(() => ({
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { duration: 0.5 }
+  }), []);
+  
+  // Мемоизированный обработчик для toggleTheme
+  const handleThemeToggle = useCallback(() => {
+    toggleTheme();
+  }, [toggleTheme]);
+  
+  // Мемоизированный footer контент
+  const footerContent = useMemo(() => (
+    <Footer>
+      Powered by <a href="https://anthropic.com/claude" target="_blank" rel="noopener noreferrer">Anthropic's Claude 3.7 Sonnet</a> via Puter.js | {currentYear}
+    </Footer>
+  ), [currentYear]);
+
+  return (
+    <StyledThemeProvider theme={{...theme, isDark}}>
+      <AppContainer {...animationProps}>
+        <Header>
+          <AppLogo />
+          <StatusIndicator status={puterStatus} />
+          <ThemeToggle darkMode={isDark} toggleDarkMode={handleThemeToggle} />
+        </Header>
+        <ChatInterface onPuterStatusChange={onPuterStatusChange} />
+        {footerContent}
+      </AppContainer>
+    </StyledThemeProvider>
+  );
+});
+
+export default memo(App); 

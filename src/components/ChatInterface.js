@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import Message from './Message';
@@ -168,25 +168,29 @@ const StatusIndicator = styled.div`
   gap: 0.5rem;
 `;
 
-const WelcomeMessage = styled(motion.div)`
+// Выносим компоненты приветствия за пределы основного компонента для оптимизации LCP
+// и убираем стилизацию через styled-components для критического LCP элемента
+const WelcomeMessage = styled.div`
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 1rem;
   max-width: 600px;
   margin: 0 auto;
   
-  /* Небольшая декоративная подсветка */
+  @media (min-width: 768px) {
+    padding: 3rem 1rem;
+  }
+  
+  /* Используем более легкие стили без эффектов для ускорения LCP */
   position: relative;
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50px;
-    left: calc(50% - 150px);
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0) 70%);
-    z-index: -1;
-    border-radius: 50%;
+  /* Предварительно отрендеренный основной текст для LCP */
+  .welcome-text {
+    color: var(--color-text-secondary, #6b7280);
+    line-height: 1.8;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    contain: content;
+    max-width: 100%;
   }
 `;
 
@@ -197,7 +201,17 @@ const WelcomeTitle = styled.h2`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-size: 200% auto;
-  animation: gradient 8s ease infinite;
+  
+  /* Упрощаем градиент и анимацию для ускорения LCP */
+  will-change: background-position;
+  
+  @media (prefers-reduced-motion: no-preference) {
+    animation: gradient 8s ease infinite;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
   
   @keyframes gradient {
     0% {
@@ -212,12 +226,8 @@ const WelcomeTitle = styled.h2`
   }
 `;
 
-const WelcomeText = styled.p`
-  color: ${props => props.theme.textSecondary};
-  line-height: 1.8;
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
-`;
+// Убираем использование styled-components для LCP-элемента
+// WelcomeText теперь использует регулярный CSS класс для элемента p
 
 const RetryButton = styled.button`
   background-color: var(--color-primary);
@@ -243,7 +253,7 @@ const RetryButton = styled.button`
   }
 `;
 
-// Обновленная функция для работы с API Puter.js
+// Выносим функцию за пределы компонента для предотвращения пересоздания при рендере
 const sendToClaude = async (message, setStreamingMessage, onPuterStatusChange) => {
   // Verify that puter is defined
   if (typeof puter === 'undefined') {
@@ -266,26 +276,34 @@ const sendToClaude = async (message, setStreamingMessage, onPuterStatusChange) =
         
         if (setStreamingMessage) {
           // Streaming mode
-          const streamResponse = await puter.ai.chat(message, {
-            model: 'claude-3-7-sonnet', 
-            stream: true
-          });
-          
-          console.log("Stream response received:", typeof streamResponse);
-          
-          // Process the stream (поддержка разных форматов ответа)
-          if (streamResponse && typeof streamResponse[Symbol.asyncIterator] === 'function') {
-            for await (const part of streamResponse) {
-              if (part?.text) {
-                fullResponse += part.text;
-                setStreamingMessage(fullResponse);
+          try {
+            const streamResponse = await puter.ai.chat(message, {
+              model: 'claude-3-7-sonnet', 
+              stream: true
+            });
+            
+            console.log("Stream response received:", typeof streamResponse);
+            
+            // Process the stream (поддержка разных форматов ответа)
+            if (streamResponse && typeof streamResponse[Symbol.asyncIterator] === 'function') {
+              for await (const part of streamResponse) {
+                if (part?.text) {
+                  fullResponse += part.text;
+                  setStreamingMessage(fullResponse);
+                }
               }
+            } 
+            // Обработка случая, когда стриминг технически включен, но ответ приходит целиком
+            else if (typeof streamResponse === 'string') {
+              fullResponse = streamResponse;
+              setStreamingMessage(fullResponse);
+            } else {
+              console.warn("Unexpected stream response format:", streamResponse);
+              throw new Error('Unexpected response format from Claude API');
             }
-          } 
-          // Обработка случая, когда стриминг технически включен, но ответ приходит целиком
-          else if (typeof streamResponse === 'string') {
-            fullResponse = streamResponse;
-            setStreamingMessage(fullResponse);
+          } catch (streamError) {
+            console.error("Error in streaming mode:", streamError);
+            throw new Error(`Streaming error: ${streamError.message || 'Unknown streaming error'}`);
           }
         } else {
           // Non-streaming mode
@@ -343,13 +361,26 @@ const sendToClaude = async (message, setStreamingMessage, onPuterStatusChange) =
     console.error('Error in Claude API call:', error);
     console.error('Error details:', error.message);
     
-    // Check if error is related to network/connection
-    if (
-      error.message.includes('network') || 
-      error.message.includes('connection') || 
-      error.message.includes('offline')
-    ) {
+    // Обрабатываем разные типы ошибок с более информативными сообщениями
+    let errorMessage = 'Sorry, I encountered an error while processing your request.';
+    
+    // Проверяем тип ошибки для более точного сообщения
+    if (error.message.includes('network') || 
+        error.message.includes('connection') || 
+        error.message.includes('offline')) {
+      errorMessage = 'Network connection issue detected. Please check your internet connection and try again.';
       onPuterStatusChange && onPuterStatusChange('error');
+    } else if (error.message.includes('timeout') || error.message.includes('timed out')) {
+      errorMessage = 'The request to Claude API timed out. Please try again with a shorter message.';
+    } else if (error.message.includes('streaming')) {
+      errorMessage = 'Error during streaming response. Please try again with streaming disabled.';
+    } else if (error.message.includes('Unexpected response format')) {
+      errorMessage = 'Claude API returned an unexpected response format. Please try again.';
+    }
+    
+    // Добавляем техническую информацию для отладки, если это не связано с Puter.js
+    if (!error.message.includes('Puter.js')) {
+      error.message = `${errorMessage} Technical details: ${error.message}`;
     }
     
     throw error;
@@ -366,28 +397,44 @@ const ChatInterface = ({ onPuterStatusChange }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
+  // Мемоизация функции для предотвращения пересоздания при каждом рендере
+  const scrollToBottom = useCallback(() => {
+    // Используем requestAnimationFrame для оптимизации скроллинга
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }, []);
+
   // Check if puter is loaded
   useEffect(() => {
-    if (typeof puter === 'undefined') {
-      console.error("Puter.js library is not loaded");
-      setIsPuterLoaded(false);
-      onPuterStatusChange && onPuterStatusChange('error');
-      setMessages([{
-        id: Date.now(),
-        text: "Puter.js library failed to load. Please check your internet connection and reload the page.",
-        sender: 'claude',
-        isError: true,
-        timestamp: new Date().toISOString(),
-      }]);
-    } else {
-      onPuterStatusChange && onPuterStatusChange('loaded');
-    }
+    const checkPuter = () => {
+      if (typeof puter === 'undefined') {
+        console.error("Puter.js library is not loaded");
+        setIsPuterLoaded(false);
+        onPuterStatusChange && onPuterStatusChange('error');
+        setMessages([{
+          id: Date.now(),
+          text: "Puter.js library failed to load. Please check your internet connection and reload the page.",
+          sender: 'claude',
+          isError: true,
+          timestamp: new Date().toISOString(),
+        }]);
+      } else {
+        onPuterStatusChange && onPuterStatusChange('loaded');
+      }
+    };
+    
+    checkPuter();
+    
+    // Устанавливаем таймер для отложенной проверки, поскольку скрипт может загружаться с задержкой
+    const timer = setTimeout(checkPuter, 2000);
+    return () => clearTimeout(timer);
   }, [onPuterStatusChange]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [messages, streamingMessage, scrollToBottom]);
   
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -397,24 +444,17 @@ const ChatInterface = ({ onPuterStatusChange }) => {
     }
   }, [input]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleInputChange = (e) => {
+  const handleInputChange = useCallback((e) => {
     setInput(e.target.value);
-    // Уменьшаем количество логов для отладки
-    // console.log("Input text:", e.target.value);
-    // console.log("Textarea color:", getComputedStyle(e.target).color);
-  };
+  }, []);
 
-  const handleClearChat = () => {
+  const handleClearChat = useCallback(() => {
     setMessages([]);
     setStreamingMessage('');
     setIsStreaming(false);
-  };
+  }, []);
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = useCallback(async () => {
     if (!input.trim() || isLoading) return;
     
     // Check if puter is loaded before proceeding
@@ -439,11 +479,13 @@ const ChatInterface = ({ onPuterStatusChange }) => {
       timestamp: new Date().toISOString(),
     };
     
+    // Сохраняем текст сообщения для возможного повтора
+    const userInput = input.trim();
+    
     // Add user message to chat
     setMessages((prev) => [...prev, userMessage]);
     
     // Clear input and set loading state
-    const userInput = input.trim();
     setInput('');
     setIsLoading(true);
     setIsStreaming(true);
@@ -490,6 +532,20 @@ const ChatInterface = ({ onPuterStatusChange }) => {
     } catch (error) {
       console.error('Error sending message:', error);
       
+      // Создаем функцию повтора для этого конкретного сообщения
+      const retryFunction = () => {
+        // Восстанавливаем текст сообщения и отправляем заново
+        setInput(userInput);
+        setTimeout(() => {
+          if (textareaRef.current) {
+            // Фокусируемся на поле ввода и обновляем его высоту
+            textareaRef.current.focus();
+            textareaRef.current.style.height = '60px';
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+          }
+        }, 100);
+      };
+      
       // Add error message
       setMessages(prevMessages => {
         // Filter out the streaming message
@@ -500,10 +556,11 @@ const ChatInterface = ({ onPuterStatusChange }) => {
           id: responseId,
           text: error.message.includes("Puter.js") 
             ? error.message 
-            : "Sorry, I encountered an error while processing your request. Please try again.",
+            : error.message || "Sorry, I encountered an error while processing your request. Please try again.",
           sender: 'claude',
           isError: true,
           timestamp: new Date().toISOString(),
+          retryFunction // Прикрепляем функцию повтора к сообщению
         }];
       });
     } finally {
@@ -511,17 +568,26 @@ const ChatInterface = ({ onPuterStatusChange }) => {
       setIsLoading(false);
       setIsStreaming(false);
     }
-  };
+  }, [input, isLoading, isPuterLoaded, onPuterStatusChange]);
 
-  const handleKeyDown = (e) => {
-    // Send message on Enter (without Shift)
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  // Обновляем зависимости для handleKeyDown после объявления handleSendMessage
+  useEffect(() => {
+    // Это решает проблему циклической зависимости
+    const handler = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    };
+    
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.addEventListener('keydown', handler);
+      return () => textarea.removeEventListener('keydown', handler);
     }
-  };
+  }, [handleSendMessage]);
 
-  const retryPuterConnection = () => {
+  const retryPuterConnection = useCallback(() => {
     // Set status to loading
     onPuterStatusChange && onPuterStatusChange('loading');
     
@@ -545,56 +611,62 @@ const ChatInterface = ({ onPuterStatusChange }) => {
       onPuterStatusChange && onPuterStatusChange('error');
     };
     document.head.appendChild(script);
-  };
+  }, [onPuterStatusChange]);
+
+  // Мемоизация содержимого Welcome сообщения для предотвращения перерисовок
+  const welcomeContent = useMemo(() => (
+    <WelcomeMessage data-lcp="container">
+      <WelcomeTitle className="gradient-text">Welcome to Claude 3.7</WelcomeTitle>
+      <p className="welcome-text" data-lcp="true">
+        {isPuterLoaded ? (
+          <>
+            Chat with Claude 3.7 Sonnet, Anthropic's most advanced AI assistant. 
+            This interface connects directly to the Claude API through Puter.js.
+            Ask a question to get started!
+          </>
+        ) : (
+          <>
+            Puter.js library failed to load. This is required to connect to Claude 3.7 Sonnet.
+            Please check your internet connection and try again.
+            <RetryButton onClick={retryPuterConnection}>
+              Retry Connection
+            </RetryButton>
+          </>
+        )}
+      </p>
+    </WelcomeMessage>
+  ), [isPuterLoaded, retryPuterConnection]);
+
+  // Оптимизированный рендеринг списка сообщений
+  const renderedMessages = useMemo(() => 
+    messages.map((message, index) => (
+      <Message 
+        key={message.id}
+        id={message.id}
+        text={message.text}
+        sender={message.sender}
+        timestamp={message.timestamp}
+        isError={message.isError}
+        isStreaming={message.isStreaming}
+        isFirst={index === 0 || messages[index - 1].sender !== message.sender}
+      />
+    )), [messages]);
 
   return (
     <ChatContainer>
       <MessagesContainer role="log" aria-live="polite" aria-label="Диалог с Claude 3.7 Sonnet">
         {messages.length === 0 && !isStreaming ? (
-          <WelcomeMessage
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <WelcomeTitle className="gradient-text">Welcome to Claude 3.7</WelcomeTitle>
-            <WelcomeText>
-              {isPuterLoaded ? (
-                <>
-                  Chat with Claude 3.7 Sonnet, Anthropic's most advanced AI assistant. 
-                  This interface connects directly to the Claude API through Puter.js.
-                  Ask a question to get started!
-                </>
-              ) : (
-                <>
-                  Puter.js library failed to load. This is required to connect to Claude 3.7 Sonnet.
-                  Please check your internet connection and try again.
-                  <RetryButton onClick={retryPuterConnection}>
-                    Retry Connection
-                  </RetryButton>
-                </>
-              )}
-            </WelcomeText>
-          </WelcomeMessage>
+          welcomeContent
         ) : (
-          <AnimatePresence>
-            {messages.map((message, index) => (
-              <Message 
-                key={message.id}
-                id={message.id}
-                text={message.text}
-                sender={message.sender}
-                timestamp={message.timestamp}
-                isError={message.isError}
-                isStreaming={message.isStreaming}
-                isFirst={index === 0 || messages[index - 1].sender !== message.sender}
-              />
-            ))}
-          </AnimatePresence>
+          <>
+            {renderedMessages}
+          </>
         )}
         
         {/* Show streaming response in real-time */}
         {isStreaming && streamingMessage && (
           <Message
+            key="streaming-message"
             id="streaming"
             text={streamingMessage}
             sender="claude"
@@ -625,7 +697,6 @@ const ChatInterface = ({ onPuterStatusChange }) => {
             ref={textareaRef}
             value={input}
             onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
             placeholder="Message Claude 3.7 Sonnet..."
             disabled={isLoading}
             aria-label="Текст сообщения"
@@ -661,7 +732,7 @@ const ChatInterface = ({ onPuterStatusChange }) => {
   );
 };
 
-export default ChatInterface;
+export default React.memo(ChatInterface);
 
 // Add default props at the bottom of the file
 ChatInterface.defaultProps = {

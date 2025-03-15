@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { FiUser, FiLoader, FiCopy, FiCheck } from 'react-icons/fi';
+import { FiUser, FiLoader, FiCopy, FiCheck, FiRefreshCw } from 'react-icons/fi';
 import CodeBlock from './CodeBlock';
 
 const MessageContainer = styled(motion.div)`
@@ -300,7 +300,48 @@ const CopyMessageButton = styled.button`
   }
 `;
 
-const Message = ({ 
+// Добавляем новый компонент для кнопки повтора
+const RetryErrorButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  
+  &:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  svg {
+    animation: none;
+    transition: all var(--transition-fast);
+  }
+  
+  &:hover svg {
+    animation: spin-once 0.5s ease;
+  }
+  
+  @keyframes spin-once {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const Message = React.memo(({ 
   id, 
   text, 
   sender, 
@@ -308,7 +349,8 @@ const Message = ({
   isFirst = false, 
   isLoading = false,
   isError = false,
-  isStreaming = false
+  isStreaming = false,
+  retryFunction
 }) => {
   const [displayText, setDisplayText] = useState(text);
   const [copied, setCopied] = useState(false);
@@ -316,19 +358,22 @@ const Message = ({
   // Update displayText whenever text changes
   useEffect(() => {
     if (text !== undefined && text !== null) {
-      console.log(`Message ${id}: Updating text (length: ${text.length})`);
+      // Убираем избыточное логирование для повышения производительности
+      // console.log(`Message ${id}: Updating text (length: ${text.length})`);
       setDisplayText(text);
     }
   }, [text, id]);
   
-  // Format the timestamp for display
-  const formattedTime = timestamp ? new Date(timestamp).toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  }) : '';
+  // Format the timestamp for display - мемоизируем вычисление
+  const formattedTime = useMemo(() => {
+    return timestamp ? new Date(timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }) : '';
+  }, [timestamp]);
   
   // Функция для копирования всего текста сообщения
-  const handleCopyMessage = () => {
+  const handleCopyMessage = useCallback(() => {
     if (!navigator.clipboard || !displayText) return;
     
     navigator.clipboard.writeText(displayText).then(() => {
@@ -337,7 +382,14 @@ const Message = ({
     }).catch(err => {
       console.error('Ошибка при копировании сообщения: ', err);
     });
-  };
+  }, [displayText]);
+  
+  // Обработчик для кнопки повтора
+  const handleRetry = useCallback(() => {
+    if (typeof retryFunction === 'function') {
+      retryFunction();
+    }
+  }, [retryFunction]);
   
   return (
     <MessageContainer
@@ -415,11 +467,25 @@ const Message = ({
               <p>Unable to display message content.</p>
             )}
             {isStreaming && <StreamingCursor aria-hidden="true" />}
+            
+            {/* Добавляем кнопку повтора, если есть ошибка и функция повтора */}
+            {isError && typeof retryFunction === 'function' && (
+              <RetryErrorButton onClick={handleRetry}>
+                <FiRefreshCw size={16} />
+                Retry this message
+              </RetryErrorButton>
+            )}
           </MessageContent>
         )}
       </ContentWrapper>
     </MessageContainer>
   );
-};
+}, (prevProps, nextProps) => {
+  // Оптимизация перерисовок - перерисовывать только если изменились существенные свойства
+  return prevProps.id === nextProps.id && 
+         prevProps.text === nextProps.text &&
+         prevProps.isStreaming === nextProps.isStreaming &&
+         prevProps.isLoading === nextProps.isLoading;
+});
 
 export default Message; 
