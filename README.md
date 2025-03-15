@@ -56,10 +56,4 @@ Simply type your message in the input box and press Enter or click the Send butt
 
 The application automatically formats code blocks, lists, and other markdown elements for better readability.
 
-## Credits
-
-This application uses the Puter.js library to connect with Claude 3.7 Sonnet. The UI is built with React, styled-components, and Framer Motion for animations.
-
-## Note
-
-Please be aware that this is a UI demonstration. For production use, you should implement proper API key management, user authentication, and other security measures. 
+## Ready to receive feedback in telegram - @Trivialsion
