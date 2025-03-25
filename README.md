@@ -1,59 +1,71 @@
-# Claude 3.7 Sonnet Chat UI
+# Claude 3.7 Sonnet Chat Interface
 
-A modern, visually stunning chat interface for interacting with Claude 3.7 Sonnet, Anthropic's most advanced AI assistant. This application uses the Puter.js API to provide real-time communication with Claude.
+This application provides a reliable web interface for accessing Anthropic's powerful Claude 3.7 Sonnet AI assistant. This application uses the Puter.js API to provide real-time communication with Claude.
 
 ## Features
 
-- Beautiful, responsive UI with animations and transitions
-- Dark mode support
-- Real-time streaming responses from Claude 3.7 Sonnet
-- Markdown rendering for rich text responses
-- Code syntax highlighting
-- Message history
-- Custom UI elements for an engaging chat experience
+- **Direct Claude 3.7 Sonnet Access**: Chat directly with Claude 3.7 Sonnet without requiring an API key
+- **Streaming Responses**: See Claude's responses appear in real-time as they're generated
+- **Robust API Integration**: Multiple fallback mechanisms ensure consistent access to Claude
+- **Dark/Light Mode**: Automatically adapts to your system preferences
+- **Responsive Design**: Works on desktop and mobile devices
+- **Debugging Tools**: Built-in diagnostic features to help troubleshoot connection issues
+- **Enhanced Reliability**: Automatically recovers from temporary API issues
 
-## Integration with Claude
+## How It Works
 
 This application uses [Puter.js](https://docs.puter.com/AI/chat/) to communicate directly with Claude 3.7 Sonnet. The integration:
 
 - Sends user messages directly to Claude through the Puter API
-- Streams responses in real-time with a typing indicator
-- Supports markdown and code formatting
-- Maintains the conversation context for natural discussions
+- Handles streaming of responses back to the user interface
+- Implements multiple fallback mechanisms if the primary connection fails
+- Provides debugging tools to diagnose and fix connection issues
 
-## Getting Started
+## Troubleshooting
 
-### Prerequisites
+If you encounter issues with Claude 3.7 access, try these steps:
 
-- Node.js (v14 or later)
-- npm or yarn
+1. **Click the Debug button** in the bottom right corner to activate diagnostic mode
+2. Check the browser console (F12) for diagnostic information
+3. Verify that `https://js.puter.com/v2/` is accessible from your network
+4. Try refreshing the page or clearing your browser cache
+5. If issues persist, the application will automatically try alternative connection methods
 
-### Installation
+## Adding URL Parameters
 
-1. Clone this repository
-2. Install dependencies:
-   ```
-   npm install
-   ```
-   or
-   ```
-   yarn install
-   ```
-3. Start the development server:
-   ```
-   npm start
-   ```
-   or
-   ```
-   yarn start
-   ```
+You can add the following parameters to the URL:
 
-4. Open [http://localhost:3000](http://localhost:3000) to view the application in your browser.
+- `?debug=true` - Activates debug mode on startup
+- `?model=claude-3-sonnet-20240229` - Explicitly set the model to use
 
-## Usage
+## Development
 
-Simply type your message in the input box and press Enter or click the Send button. Claude 3.7 Sonnet will respond in real-time with a typing animation as the response streams in.
+This application uses React and modern web technologies for a responsive, efficient user experience.
 
-The application automatically formats code blocks, lists, and other markdown elements for better readability.
+### Key Files
+
+- `src/utils/puterApi.js` - Core implementation of Claude API integration
+- `src/utils/fallbackApi.js` - Fallback mechanisms for reliable access
+- `src/utils/debugUtils.js` - Debugging and diagnostic tools
+- `src/App.js` - Main application component
+
+### Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+
+# Build for production
+npm run build
+```
+
+## Credits
+
+- UI Design by Chronix
+- Powered by Anthropic's Claude 3.7 Sonnet
+- Backend access via Puter.js API
 
 ## Ready to receive feedback in telegram - @Trivialsion

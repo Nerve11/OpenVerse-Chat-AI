@@ -1,6 +1,7 @@
 import React, { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Используем динамический импорт для App, сначала показываем наш собственный прелоадер
 const App = lazy(() => {
@@ -97,6 +98,20 @@ const checkPuterAvailability = () => {
             if (typeof window.puter.ai.completion === 'function') availableMethods.push('completion');
           }
           console.debug('Available Puter AI methods:', availableMethods);
+          
+          // Дополнительная проверка доступа к Claude 3.7
+          try {
+            // Проверяем, что метод claudeCompletion работает с моделью claude-3-sonnet
+            if (window.puter.ai.claudeCompletion && 
+                typeof window.puter.ai.claudeCompletion.toString() === 'function' &&
+                window.puter.ai.claudeCompletion.toString().indexOf('claude-3-sonnet') !== -1) {
+              console.debug('Claude 3.7 Sonnet access confirmed via Puter.js');
+            } else {
+              console.warn('Claude 3.7 Sonnet access might be limited via Puter.js');
+            }
+          } catch (checkErr) {
+            console.warn('Error checking Claude access:', checkErr);
+          }
         } catch (err) {
           console.warn('Error checking Puter AI methods:', err);
         }
@@ -126,12 +141,14 @@ const renderApp = (isPuterAvailable, hasTimeout) => {
   // Рендерим приложение
   root.render(
     <StrictMode>
-      <Suspense fallback={<LoadingComponent />}>
-        <App 
-          puterLoaded={isPuterAvailable} 
-          puterTimeout={hasTimeout && !isPuterAvailable}
-        />
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingComponent />}>
+          <App 
+            puterLoaded={isPuterAvailable} 
+            puterTimeout={hasTimeout && !isPuterAvailable}
+          />
+        </Suspense>
+      </ErrorBoundary>
     </StrictMode>
   );
   
@@ -221,4 +238,13 @@ if ('serviceWorker' in navigator) {
         });
     }, 3000); // Отложить на 3 секунды после загрузки
   });
-} 
+}
+
+// Добавляем глобальный обработчик необработанных отклонений обещаний
+window.addEventListener('unhandledrejection', (event) => {
+  // Предотвращаем отображение ошибки в overlay
+  event.preventDefault();
+  
+  // Логируем ошибку в консоль
+  console.warn('Необработанное отклонение обещания (предотвращено отображение overlay):', event.reason);
+}); 

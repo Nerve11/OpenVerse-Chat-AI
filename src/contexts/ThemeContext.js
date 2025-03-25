@@ -1,21 +1,15 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { lightTheme, darkTheme } from '../theme';
 
 // Create the ThemeContext
 export const ThemeContext = createContext({
-  theme: lightTheme,
-  isDark: false,
+  isDark: true,
   toggleTheme: () => {}
 });
 
 // Create ThemeProvider component
 export const ThemeProvider = ({ children }) => {
-  // Check for user preference
-  const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const [isDark, setIsDark] = useState(prefersDarkScheme);
-
-  // Set the theme based on isDark state
-  const theme = isDark ? { ...darkTheme, isDark: true } : { ...lightTheme, isDark: false };
+  // Default to dark mode for our design
+  const [isDark, setIsDark] = useState(true);
 
   // Toggle theme function
   const toggleTheme = () => {
@@ -24,15 +18,14 @@ export const ThemeProvider = ({ children }) => {
 
   // Effect to apply dark mode class to body
   useEffect(() => {
-    if (isDark) {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-  }, [isDark]);
+    document.body.classList.add('dark-mode');
+    
+    // Apply dark mode to root element
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, isDark, toggleTheme }}>
+    <ThemeContext.Provider value={{ isDark, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
