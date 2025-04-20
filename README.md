@@ -7,7 +7,6 @@ This application provides a reliable web interface for accessing Anthropic's pow
 - **Direct Claude 3.7 Sonnet Access**: Chat directly with Claude 3.7 Sonnet without requiring an API key
 - **Streaming Responses**: See Claude's responses appear in real-time as they're generated
 - **Robust API Integration**: Multiple fallback mechanisms ensure consistent access to Claude
-- **Dark/Light Mode**: Automatically adapts to your system preferences
 - **Responsive Design**: Works on desktop and mobile devices
 - **Debugging Tools**: Built-in diagnostic features to help troubleshoot connection issues
 - **Enhanced Reliability**: Automatically recovers from temporary API issues
@@ -65,7 +64,6 @@ npm run build
 ## Credits
 
 - UI Design by Chronix
-- Powered by Anthropic's Claude 3.7 Sonnet
 - Backend access via Puter.js API
 
 ## Ready to receive feedback in telegram - @Trivialsion

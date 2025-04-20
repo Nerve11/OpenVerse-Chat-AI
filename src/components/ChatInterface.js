@@ -52,7 +52,6 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded }) => {
       {messages.length === 0 && !streamingMessage && !apiErrorElement && (
         <div className="welcome-message">
           <h2>Welcome to Claude 3.7 Sonnet Chat</h2>
-          <p>Ask me anything! I'm powered by Anthropic's Claude 3.7 Sonnet model via Puter.js.</p>
         </div>
       )}
       {apiErrorElement}

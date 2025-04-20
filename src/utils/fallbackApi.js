@@ -60,11 +60,34 @@ export const fallbackSendMessage = async (message, onStreamUpdate, systemPrompt 
           delete window[callbackId];
           reject(new Error('Claude API request timed out'));
         }
-      }, 30000); // 30 second timeout
+      }, 60000); // 60 second timeout (increased from 30s)
     });
     
     // Create a streamer function to handle streaming updates
+    let lastUpdateTime = Date.now();
+    const STREAM_TIMEOUT = 60000; // 60 seconds
+    let streamTimeoutId = null;
+    
     window[`${callbackId}_stream`] = (chunk) => {
+      // Reset the timeout on each chunk
+      if (streamTimeoutId) {
+        clearTimeout(streamTimeoutId);
+      }
+      
+      // Set new timeout
+      streamTimeoutId = setTimeout(() => {
+        const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+        if (timeSinceLastUpdate > STREAM_TIMEOUT) {
+          // Send timeout notification through the stream
+          if (onStreamUpdate && typeof onStreamUpdate === 'function') {
+            onStreamUpdate("\n\n[Ответ может быть неполным из-за таймаута]");
+          }
+        }
+      }, STREAM_TIMEOUT);
+      
+      // Update last update time
+      lastUpdateTime = Date.now();
+      
       if (onStreamUpdate && typeof onStreamUpdate === 'function') {
         onStreamUpdate(chunk);
       }

@@ -12,12 +12,30 @@ const MAX_RETRIES = 3;
 export const CLAUDE_MODELS = {
   CLAUDE_3_7_SONNET: 'claude-3-7-sonnet',
   CLAUDE_3_5_SONNET: 'claude-3-5-sonnet',
-  GPT_4O: 'gpt-4o',
-  O3_MINI: 'o3-mini',
+  O1: 'o1',
+  O1_PRO: 'o1-pro',
   O1_MINI: 'o1-mini',
+  O3: 'o3',
+  O3_MINI: 'o3-mini',
+  O4_MINI: 'o4-mini',
+  GPT_4O: 'gpt-4o',
+  GPT_4O_MINI: 'gpt-4o-mini',
+  GPT_4_1: 'gpt-4.1',
+  GPT_4_1_MINI: 'gpt-4.1-mini',
+  GPT_4_1_NANO: 'gpt-4.1-nano',
+  GPT_4_5_PREVIEW: 'gpt-4.5-preview',
+  META_LLAMA_3_1_8B: 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+  META_LLAMA_3_1_70B: 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
   META_LLAMA_3_1_405B: 'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
   GEMINI_2_0_FLASH: 'gemini-2.0-flash',
-  DEEPSEEK_REASONER: 'deepseek-reasoner'
+  GEMINI_1_5_FLASH: 'gemini-1.5-flash',
+  DEEPSEEK_CHAT: 'deepseek-chat',
+  DEEPSEEK_REASONER: 'deepseek-reasoner',
+  MISTRAL_LARGE_LATEST: 'mistral-large-latest',
+  PIXTRAL_LARGE_LATEST: 'pixtral-large-latest',
+  CODESTRAL_LATEST: 'codestral-latest',
+  GEMMA_2_27B_IT: 'google/gemma-2-27b-it',
+  GROK_BETA: 'grok-beta'
 };
 
 /**
@@ -52,9 +70,50 @@ export const isPuterAvailable = () => {
  * @returns {Promise<string>} The complete response
  */
 export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUDE_MODELS.CLAUDE_3_5_SONNET, systemPrompt = '', retryCount = 0) => {
+  let fullResponse = '';
+
   try {
     // Validate that we have a proper model specified
     const modelToUse = model || CLAUDE_MODELS.CLAUDE_3_5_SONNET;
+    
+    // List of currently supported models (should be updated as Puter API evolves)
+    const SUPPORTED_MODELS = [
+      CLAUDE_MODELS.CLAUDE_3_7_SONNET, 
+      CLAUDE_MODELS.CLAUDE_3_5_SONNET,
+      CLAUDE_MODELS.GPT_4O,
+      CLAUDE_MODELS.GPT_4O_MINI,
+      CLAUDE_MODELS.O1,
+      CLAUDE_MODELS.O1_PRO,
+      CLAUDE_MODELS.O1_MINI,
+      CLAUDE_MODELS.O3,
+      CLAUDE_MODELS.O3_MINI,
+      CLAUDE_MODELS.O4_MINI,
+      CLAUDE_MODELS.GPT_4_1,
+      CLAUDE_MODELS.GPT_4_1_MINI,
+      CLAUDE_MODELS.GPT_4_1_NANO,
+      CLAUDE_MODELS.GPT_4_5_PREVIEW,
+      CLAUDE_MODELS.GEMINI_2_0_FLASH,
+      CLAUDE_MODELS.GEMINI_1_5_FLASH,
+      CLAUDE_MODELS.META_LLAMA_3_1_8B,
+      CLAUDE_MODELS.META_LLAMA_3_1_70B,
+      CLAUDE_MODELS.META_LLAMA_3_1_405B,
+      CLAUDE_MODELS.DEEPSEEK_CHAT,
+      CLAUDE_MODELS.DEEPSEEK_REASONER,
+      CLAUDE_MODELS.MISTRAL_LARGE_LATEST,
+      CLAUDE_MODELS.PIXTRAL_LARGE_LATEST,
+      CLAUDE_MODELS.CODESTRAL_LATEST,
+      CLAUDE_MODELS.GEMMA_2_27B_IT,
+      CLAUDE_MODELS.GROK_BETA
+    ];
+    
+    // Check if selected model is in the supported list
+    if (!SUPPORTED_MODELS.includes(modelToUse)) {
+      console.warn(`Model ${modelToUse} might not be supported yet by the Puter API`);
+      if (isDebugMode()) {
+        debugLog(`Model ${modelToUse} might not be fully supported, will attempt anyway`);
+      }
+      onStreamUpdate("⚠️ Warning: The selected model may not be fully supported. Attempting to use it anyway...\n\n");
+    }
     
     if (isDebugMode()) {
       debugLog(`Sending message to Claude, retry: ${retryCount}/${MAX_RETRIES}, model: ${modelToUse}`);
@@ -92,80 +151,147 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
     try {
       debugLog(`Calling model: ${modelToUse} API via Puter.js`);
       
-      let fullResponse = '';
-      
       // Wrap the API call in a try/catch to handle any model-specific errors
       try {
-        // Prepare API options
-        const apiOptions = {
-          model: modelToUse,
-          stream: true,
-          max_tokens: 65000 // Добавляем максимальное количество токенов для ответа
-        };
+        // Different handling based on whether we're using messages or direct prompt
+        let response;
         
-        // Add system prompt if provided
-        if (systemPrompt && systemPrompt.trim() !== '') {
-          // Проверяем, что системный промпт не пустой
-          const trimmedPrompt = systemPrompt.trim();
-          if (trimmedPrompt.length > 0) {
-            apiOptions.systemPrompt = trimmedPrompt;
-            console.log(`Setting systemPrompt in API options (${trimmedPrompt.length} chars): "${trimmedPrompt.substring(0, 50)}${trimmedPrompt.length > 50 ? '...' : ''}"`);
+        // According to the Puter.js documentation, there are multiple ways to call the API
+        if (systemPrompt && systemPrompt.trim()) {
+          // If we have a system prompt, use the messages array format
+          const messages = [
+            {
+              role: 'system',
+              content: systemPrompt.trim()
+            },
+            {
+              role: 'user',
+              content: message
+            }
+          ];
+          
+          // Call with messages array and model in options
+          if (isDebugMode()) {
+            debugLog(`Calling with messages array format: ${JSON.stringify(messages.map(m => ({ role: m.role, content_length: m.content.length })))}`);
           }
+          
+          response = await window.puter.ai.chat(messages, {
+            model: modelToUse,
+            stream: true
+          });
+        } else {
+          // If no system prompt, use the simpler format with just the message and options
+          if (isDebugMode()) {
+            debugLog(`Calling with simple format: message length ${message.length}`);
+          }
+          
+          response = await window.puter.ai.chat(message, {
+            model: modelToUse,
+            stream: true
+          });
         }
-        
-        console.log('API options:', JSON.stringify(apiOptions));
-        
-        const response = await window.puter.ai.chat(message, apiOptions);
         
         // Handle streaming response
-        for await (const part of response) {
-          if (part && part.text) {
-            if (isDebugMode() && part.text.length < 50) {
-              debugLog(`Stream update: ${part.text}`);
-            }
-            onStreamUpdate(part.text);
-            fullResponse += part.text;
-          }
-        }
-      } catch (modelError) {
-        // If there's an error with the specific model, try with a default model
-        console.error(`Error with model ${modelToUse}:`, modelError);
+        let isStreamComplete = false;
+        let streamTimeout;
         
-        if (modelToUse !== CLAUDE_MODELS.CLAUDE_3_5_SONNET) {
-          debugLog(`Falling back to default model ${CLAUDE_MODELS.CLAUDE_3_5_SONNET}`);
-          onStreamUpdate("⚠️ Error with selected model. Switching to Claude 3.5 Sonnet.\n\n");
+        try {
+          // Set a timeout to detect stalled streams
+          const STREAM_TIMEOUT = 60000; // 60 seconds timeout (increased from 30s)
           
-          // Prepare fallback API options
-          const fallbackOptions = {
-            model: CLAUDE_MODELS.CLAUDE_3_5_SONNET,
-            stream: true,
-            max_tokens: 65000 // Добавляем максимальное количество токенов для ответа
-          };
-          
-          // Add system prompt if provided
-          if (systemPrompt && systemPrompt.trim() !== '') {
-            // Используем параметр systemPrompt вместо массива messages
-            const trimmedPrompt = systemPrompt.trim();
-            if (trimmedPrompt.length > 0) {
-              fallbackOptions.systemPrompt = trimmedPrompt;
-              console.log(`Setting systemPrompt in fallback options (${trimmedPrompt.length} chars): "${trimmedPrompt.substring(0, 50)}${trimmedPrompt.length > 50 ? '...' : ''}"`);
+          streamTimeout = setTimeout(() => {
+            if (!isStreamComplete) {
+              debugLog('Stream timeout detected - response may be incomplete');
+              onStreamUpdate("\n\n[Ответ может быть неполным из-за таймаута]");
             }
-          }
+          }, STREAM_TIMEOUT);
           
-          console.log('Fallback options:', JSON.stringify(fallbackOptions));
-          
-          const response = await window.puter.ai.chat(message, fallbackOptions);
-          
+          // Process the streaming response with better error handling
           for await (const part of response) {
             if (part && part.text) {
+              if (isDebugMode() && part.text.length < 50) {
+                debugLog(`Stream update: ${part.text}`);
+              }
               onStreamUpdate(part.text);
               fullResponse += part.text;
             }
           }
-        } else {
-          // If we're already using the default model, rethrow the error
-          throw modelError;
+          
+          // Mark stream as complete
+          isStreamComplete = true;
+          clearTimeout(streamTimeout);
+          
+          // If the response seems unusually short, add a note
+          if (fullResponse.length < 20 && !fullResponse.endsWith('.') && !fullResponse.endsWith('?') && !fullResponse.endsWith('!')) {
+            debugLog('Response seems suspiciously short or incomplete');
+            onStreamUpdate("\n\n[Ответ может быть неполным]");
+          }
+        } catch (streamError) {
+          // Handle errors during streaming
+          console.error("Error during streaming:", streamError);
+          clearTimeout(streamTimeout);
+          
+          // Notify user about the interrupted response
+          onStreamUpdate("\n\n[Ответ был прерван из-за ошибки при получении данных]");
+          
+          // Check if this is a recoverable error (like a temporary network hiccup)
+          const isRecoverable = streamError.message && (
+            streamError.message.includes("timeout") || 
+            streamError.message.includes("temporarily") || 
+            streamError.message.includes("retry")
+          );
+          
+          // If error seems recoverable and we haven't retried too many times, try again
+          if (isRecoverable && retryCount < MAX_RETRIES - 1) {
+            console.log(`Attempting to recover from stream interruption (retry ${retryCount + 1}/${MAX_RETRIES})`);
+            onStreamUpdate("\n\n[Пытаемся восстановить соединение...]");
+            
+            // Wait a moment before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Retry with incremented retry count
+            return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, retryCount + 1);
+          }
+          
+          // Rethrow error if it's severe
+          if (streamError.message && (
+              streamError.message.includes("network") || 
+              streamError.message.includes("connection") ||
+              streamError.message.includes("abort")
+          )) {
+            throw streamError;
+          }
         }
+      } catch (modelError) {
+        // If there's an error with the specific model, report it but don't auto-switch
+        console.error(`Error with model ${modelToUse}:`, modelError);
+        
+        // Provide more specific error details to help diagnose the issue
+        let errorMessage = "⚠️ Error with selected model. ";
+        
+        if (modelError.message) {
+          if (modelError.message.includes("not supported")) {
+            errorMessage += `The model "${modelToUse}" is not currently supported. `;
+          } else if (modelError.message.includes("unavailable")) {
+            errorMessage += `The model "${modelToUse}" is temporarily unavailable. `;
+          } else if (modelError.message.includes("quota") || modelError.message.includes("limit")) {
+            errorMessage += `Usage quota exceeded for model "${modelToUse}". `;
+          } else if (modelError.message.includes("permission")) {
+            errorMessage += `You don't have permission to use model "${modelToUse}". `;
+          } else if (modelError.message.includes("format")) {
+            errorMessage += `Invalid request format for model "${modelToUse}". `;
+          } else {
+            // Include actual error message for transparency
+            errorMessage += `Error: ${modelError.message}`;
+          }
+        } else {
+          errorMessage += `There was an issue using the selected model "${modelToUse}". `;
+        }
+        
+        onStreamUpdate(errorMessage);
+        
+        // Just throw the error instead of switching to Claude 3.5 Sonnet
+        throw modelError;
       }
 
       // Reset fallback status if successful

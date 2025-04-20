@@ -3,6 +3,7 @@ import { ThemeProvider as CustomThemeProvider } from './contexts/ThemeContext';
 import ChatInterface from './components/ChatInterface';
 import ModelSelector from './components/ModelSelector';
 import SystemPrompt from './components/SystemPrompt';
+import AuthManager from './components/AuthManager';
 import { isPuterAvailable, sendMessageToClaude, loadPuterScript, CLAUDE_MODELS } from './utils/puterApi';
 import { setDebugMode, isDebugMode, collectDiagnostics } from './utils/debugUtils';
 import { testPuterApi, testClaude37Access } from './utils/puterTest';
@@ -19,15 +20,53 @@ const sendToClaude = async (message, setStreamingMessage, selectedModel, systemP
     // Clear any previous streaming message
     setStreamingMessage({ content: '', role: 'assistant', id: Date.now() });
 
+    // Create response buffer to handle potential state update issues
+    let responseBuffer = '';
+    
     try {
       // Call Claude through Puter.js with updated parameters
       await sendMessageToClaude(
         message, 
         (update) => {
-          setStreamingMessage(prev => ({
-            ...prev,
-            content: prev.content + update
-          }));
+          // Make sure update is valid text
+          if (typeof update !== 'string') {
+            console.warn("Invalid update received:", update);
+            return;
+          }
+          
+          // Append to buffer first
+          responseBuffer += update;
+          
+          // Use functional state update to prevent race conditions
+          setStreamingMessage(prev => {
+            // If somehow the previous state is lost, reconstruct it
+            if (!prev || prev.content === undefined) {
+              return { 
+                content: responseBuffer, 
+                role: 'assistant', 
+                id: Date.now() 
+              };
+            }
+            
+            // Ensure the text isn't duplicated if the update replaces content
+            // (this can happen with some streaming implementations)
+            const existingContent = prev.content || '';
+            
+            // If update would create duplicate content, replace instead of append
+            if (responseBuffer.endsWith(update) && 
+                existingContent.endsWith(update.substring(0, Math.min(update.length, 10)))) {
+              return {
+                ...prev,
+                content: responseBuffer
+              };
+            }
+            
+            // Normal case: append the update
+            return {
+              ...prev,
+              content: responseBuffer // Use complete buffer instead of incremental
+            };
+          });
         },
         selectedModel,
         systemPrompt
@@ -36,16 +75,35 @@ const sendToClaude = async (message, setStreamingMessage, selectedModel, systemP
       return true;
     } catch (apiError) {
       console.error("API Error in sendToClaude:", apiError);
-      // Добавляем информацию об ошибке в сообщение для пользователя
-      setStreamingMessage(prev => ({
-        ...prev,
-        content: prev.content + "\n\n⚠️ Произошла ошибка при получении ответа. Пожалуйста, попробуйте ещё раз или измените запрос."
-      }));
+      
+      // Ensure final buffer content is displayed even after an error
+      if (responseBuffer) {
+        setStreamingMessage(prev => ({
+          ...prev,
+          content: responseBuffer
+        }));
+      }
+      
+      // Let the error from the API flow through - don't add a generic message
+      // The detailed error message is already added by sendMessageToClaude
       return false;
     }
   } catch (error) {
     console.error("Error in sendToClaude:", error);
-    // Возвращаем false вместо выбрасывания исключения
+    
+    // Only add an error message if one wasn't already set by the API
+    setStreamingMessage(prev => {
+      // Check if the error message is already in the content
+      if (!prev || !prev.content || !prev.content.includes("⚠️ Error")) {
+        return {
+          ...prev,
+          content: (prev?.content || '') + 
+            "\n\n⚠️ Ошибка: " + (error.message || "Не удалось подключиться к API.")
+        };
+      }
+      return prev;
+    });
+    
     return false;
   }
 };
@@ -204,6 +262,9 @@ const App = ({ puterLoaded, puterTimeout }) => {
       // Ensure we have a valid model selected
       const modelToUse = selectedModel || CLAUDE_MODELS.CLAUDE_3_5_SONNET;
       
+      // Clear any previous streaming message
+      setStreamingMessage({ content: '', role: 'assistant', id: Date.now() });
+      
       const success = await sendToClaude(
         userMessage.content, 
         setStreamingMessage,
@@ -216,16 +277,40 @@ const App = ({ puterLoaded, puterTimeout }) => {
       
       // Add completed assistant message to messages list
       if (currentMessage && currentMessage.content) {
+        // Better detection for incomplete responses
+        let finalContent = currentMessage.content;
+        const isCompleteSentence = finalContent.trim().endsWith('.') || 
+                                   finalContent.trim().endsWith('?') || 
+                                   finalContent.trim().endsWith('!') ||
+                                   finalContent.trim().endsWith(':') ||
+                                   finalContent.trim().endsWith(')') ||
+                                   finalContent.trim().endsWith('"') ||
+                                   finalContent.trim().endsWith("'");
+        
+        // Check for very short responses or responses with abrupt endings
+        const isPotentiallyIncomplete = 
+          (finalContent.length < 100 && !isCompleteSentence) || 
+          // Check if ends mid-sentence (ends with a word character)
+          /[a-zA-Z0-9а-яА-Я]$/.test(finalContent.trim());
+        
+        if (isPotentiallyIncomplete) {
+          console.warn("Response appears to be incomplete:", finalContent);
+          
+          // Add a warning to the message
+          finalContent += "\n\n[Ответ может быть неполным. Пожалуйста, попробуйте задать вопрос снова.]";
+        }
+        
         const assistantMessage = {
-          content: currentMessage.content,
+          content: finalContent,
           role: 'assistant',
           id: currentMessage.id || Date.now()
         };
+        
         setMessages(prev => [...prev, assistantMessage]);
       } else if (!success) {
-        // Явно обрабатываем случай, когда нет сообщения или возникла ошибка
+        // Provide a clear error message when there's no response content
         setMessages(prev => [...prev, {
-          content: "Произошла ошибка при обработке запроса. Пожалуйста, попробуйте снова.",
+          content: "Произошла ошибка при обработке запроса. Ответ не был получен. Пожалуйста, попробуйте снова.",
           role: 'assistant',
           id: Date.now()
         }]);
@@ -340,6 +425,19 @@ const App = ({ puterLoaded, puterTimeout }) => {
     }
   };
 
+  // Handle authentication changes
+  const handleAuthChange = (isAuth, user) => {
+    if (isAuth && user) {
+      console.log(`User authenticated: ${user.username}`);
+      // You can add additional logic here when a user logs in
+      // For example, loading user-specific settings or history
+    } else {
+      console.log('User signed out');
+      // You can add additional logic here when a user logs out
+      // For example, clearing user-specific data
+    }
+  };
+
   return (
     <CustomThemeProvider>
       <div className="main-container">
@@ -354,6 +452,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
               <div className="vector" />
             </div>
           </div>
+          <AuthManager onAuthChange={handleAuthChange} />
           <div className="theme" />
         </div>
         

@@ -12,6 +12,7 @@ const ModelDropdown = ({ models, selectedModel, handleModelSelect, position }) =
         position: 'absolute',
         top: `${position.top}px`,
         left: `${position.left}px`,
+        zIndex: 9999,
       }}
     >
       {models.map((model) => (
@@ -27,21 +28,52 @@ const ModelDropdown = ({ models, selectedModel, handleModelSelect, position }) =
   );
 };
 
+// Use a single document-level portal for all dropdown instances
+let globalPortalNode = null;
+
+const getPortalNode = () => {
+  if (!globalPortalNode && typeof document !== 'undefined') {
+    globalPortalNode = document.createElement('div');
+    globalPortalNode.className = 'model-dropdown-portal';
+    globalPortalNode.setAttribute('data-testid', 'model-dropdown-portal');
+    document.body.appendChild(globalPortalNode);
+  }
+  return globalPortalNode;
+};
+
 const ModelSelector = ({ selectedModel, onSelectModel, isOpen, toggleDropdown }) => {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const selectorRef = useRef(null);
-  const portalNodeRef = useRef(null);
+  const portalNode = getPortalNode();
   
   // Create an array of model objects with display names and values
   const models = [
     { id: CLAUDE_MODELS.CLAUDE_3_7_SONNET, display: 'Claude 3.7 Sonnet' },
     { id: CLAUDE_MODELS.CLAUDE_3_5_SONNET, display: 'Claude 3.5 Sonnet' },
-    { id: CLAUDE_MODELS.GPT_4O, display: 'GPT-4o' },
-    { id: CLAUDE_MODELS.O3_MINI, display: 'o3-mini' },
+    { id: CLAUDE_MODELS.O1, display: 'o1' },
+    { id: CLAUDE_MODELS.O1_PRO, display: 'o1-pro' },
     { id: CLAUDE_MODELS.O1_MINI, display: 'o1-mini' },
+    { id: CLAUDE_MODELS.O3, display: 'o3' },
+    { id: CLAUDE_MODELS.O3_MINI, display: 'o3-mini' },
+    { id: CLAUDE_MODELS.O4_MINI, display: 'o4-mini' },
+    { id: CLAUDE_MODELS.GPT_4O, display: 'GPT-4o' },
+    { id: CLAUDE_MODELS.GPT_4O_MINI, display: 'GPT-4o Mini' },
+    { id: CLAUDE_MODELS.GPT_4_1, display: 'GPT-4.1' },
+    { id: CLAUDE_MODELS.GPT_4_1_MINI, display: 'GPT-4.1 Mini' },
+    { id: CLAUDE_MODELS.GPT_4_1_NANO, display: 'GPT-4.1 Nano' },
+    { id: CLAUDE_MODELS.GPT_4_5_PREVIEW, display: 'GPT-4.5 Preview' },
+    { id: CLAUDE_MODELS.META_LLAMA_3_1_8B, display: 'Meta Llama 3.1 8B' },
+    { id: CLAUDE_MODELS.META_LLAMA_3_1_70B, display: 'Meta Llama 3.1 70B' },
     { id: CLAUDE_MODELS.META_LLAMA_3_1_405B, display: 'Meta Llama 3.1 405B' },
     { id: CLAUDE_MODELS.GEMINI_2_0_FLASH, display: 'Gemini 2.0 Flash' },
-    { id: CLAUDE_MODELS.DEEPSEEK_REASONER, display: 'DeepSeek Reasoner' }
+    { id: CLAUDE_MODELS.GEMINI_1_5_FLASH, display: 'Gemini 1.5 Flash' },
+    { id: CLAUDE_MODELS.DEEPSEEK_CHAT, display: 'DeepSeek Chat' },
+    { id: CLAUDE_MODELS.DEEPSEEK_REASONER, display: 'DeepSeek Reasoner' },
+    { id: CLAUDE_MODELS.MISTRAL_LARGE_LATEST, display: 'Mistral Large' },
+    { id: CLAUDE_MODELS.PIXTRAL_LARGE_LATEST, display: 'Pixtral Large' },
+    { id: CLAUDE_MODELS.CODESTRAL_LATEST, display: 'Codestral' },
+    { id: CLAUDE_MODELS.GEMMA_2_27B_IT, display: 'Gemma 2 27B' },
+    { id: CLAUDE_MODELS.GROK_BETA, display: 'Grok Beta' }
   ];
 
   // Safely find the display name for the currently selected model
@@ -74,49 +106,27 @@ const ModelSelector = ({ selectedModel, onSelectModel, isOpen, toggleDropdown })
     }
   }, [isOpen]);
 
-  // Initialize portal node
-  useEffect(() => {
-    // Create portal container if it doesn't exist
-    if (isOpen && !portalNodeRef.current) {
-      try {
-        portalNodeRef.current = document.createElement('div');
-        portalNodeRef.current.className = 'model-dropdown-portal';
-        document.body.appendChild(portalNodeRef.current);
-      } catch (error) {
-        console.error('Error creating portal node:', error);
-      }
-    }
-    
-    // Clean up function to remove portal element
-    return () => {
-      try {
-        if (portalNodeRef.current && document.body.contains(portalNodeRef.current)) {
-          document.body.removeChild(portalNodeRef.current);
-          portalNodeRef.current = null;
-        }
-      } catch (error) {
-        console.error('Error removing portal node:', error);
-        // Force reset the ref to avoid future errors
-        portalNodeRef.current = null;
-      }
-    };
-  }, [isOpen]);
-
   // Handle model selection with error checking
   const handleModelSelect = (e, modelId) => {
     try {
-      e.stopPropagation();
+      if (e && e.stopPropagation) {
+        e.stopPropagation();
+      }
+      
       if (typeof onSelectModel === 'function' && modelId) {
-        onSelectModel(modelId);
+        // Close dropdown before notifying parent to avoid DOM inconsistencies
+        setTimeout(() => {
+          onSelectModel(modelId);
+        }, 0);
       }
     } catch (error) {
       console.error('Error selecting model:', error);
     }
   };
 
-  // Create the dropdown portal
+  // Create the dropdown portal safely
   const renderDropdown = () => {
-    if (!isOpen || !portalNodeRef.current) return null;
+    if (!isOpen || !portalNode) return null;
     
     try {
       return createPortal(
@@ -128,7 +138,7 @@ const ModelSelector = ({ selectedModel, onSelectModel, isOpen, toggleDropdown })
             position={dropdownPosition}
           />
         </ErrorBoundary>,
-        portalNodeRef.current
+        portalNode
       );
     } catch (error) {
       console.error('Error rendering dropdown:', error);
