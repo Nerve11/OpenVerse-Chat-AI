@@ -163,7 +163,7 @@ const Dot = styled.div`
 // Wrapper to ensure text content is always in a span
 const TextWrapper = ({ children }) => <span>{children}</span>;
 
-const Message = ({ message, streaming }) => {
+const Message = ({ message, streaming, onDiscussCode }) => {
   const [formattedTime] = useState(() => {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -179,7 +179,7 @@ const Message = ({ message, streaming }) => {
         {isUser ? <UserAvatar /> : <AssistantAvatar />}
       </MessageHeader>
       
-      <MessageBox isUser={isUser}>
+      <MessageBox $isUser={isUser}>
         <MessageContent>
           <ReactMarkdown components={{
             p: ({ node, children, ...props }) => <p {...props}><span>{children}</span></p>,
@@ -202,6 +202,7 @@ const Message = ({ message, streaming }) => {
                   <CodeBlock 
                     code={code} 
                     language={match[1]} 
+                    onDiscussCode={onDiscussCode}
                   />
                 );
               }
@@ -218,9 +219,9 @@ const Message = ({ message, streaming }) => {
           
           {streaming && message.role === 'assistant' && (
             <LoadingDots>
-              <Dot delay={0} />
-              <Dot delay={0.15} />
-              <Dot delay={0.3} />
+              <Dot $delay={0} />
+              <Dot $delay={0.15} />
+              <Dot $delay={0.3} />
             </LoadingDots>
           )}
         </MessageContent>

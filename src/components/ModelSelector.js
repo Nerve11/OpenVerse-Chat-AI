@@ -52,28 +52,21 @@ const ModelSelector = ({ selectedModel, onSelectModel, isOpen, toggleDropdown })
     { id: CLAUDE_MODELS.CLAUDE_3_5_SONNET, display: 'Claude 3.5 Sonnet' },
     { id: CLAUDE_MODELS.O1, display: 'o1' },
     { id: CLAUDE_MODELS.O1_PRO, display: 'o1-pro' },
-    { id: CLAUDE_MODELS.O1_MINI, display: 'o1-mini' },
     { id: CLAUDE_MODELS.O3, display: 'o3' },
     { id: CLAUDE_MODELS.O3_MINI, display: 'o3-mini' },
     { id: CLAUDE_MODELS.O4_MINI, display: 'o4-mini' },
     { id: CLAUDE_MODELS.GPT_4O, display: 'GPT-4o' },
-    { id: CLAUDE_MODELS.GPT_4O_MINI, display: 'GPT-4o Mini' },
     { id: CLAUDE_MODELS.GPT_4_1, display: 'GPT-4.1' },
-    { id: CLAUDE_MODELS.GPT_4_1_MINI, display: 'GPT-4.1 Mini' },
-    { id: CLAUDE_MODELS.GPT_4_1_NANO, display: 'GPT-4.1 Nano' },
-    { id: CLAUDE_MODELS.GPT_4_5_PREVIEW, display: 'GPT-4.5 Preview' },
     { id: CLAUDE_MODELS.META_LLAMA_3_1_8B, display: 'Meta Llama 3.1 8B' },
     { id: CLAUDE_MODELS.META_LLAMA_3_1_70B, display: 'Meta Llama 3.1 70B' },
     { id: CLAUDE_MODELS.META_LLAMA_3_1_405B, display: 'Meta Llama 3.1 405B' },
     { id: CLAUDE_MODELS.GEMINI_2_0_FLASH, display: 'Gemini 2.0 Flash' },
-    { id: CLAUDE_MODELS.GEMINI_1_5_FLASH, display: 'Gemini 1.5 Flash' },
     { id: CLAUDE_MODELS.DEEPSEEK_CHAT, display: 'DeepSeek Chat' },
     { id: CLAUDE_MODELS.DEEPSEEK_REASONER, display: 'DeepSeek Reasoner' },
-    { id: CLAUDE_MODELS.MISTRAL_LARGE_LATEST, display: 'Mistral Large' },
     { id: CLAUDE_MODELS.PIXTRAL_LARGE_LATEST, display: 'Pixtral Large' },
-    { id: CLAUDE_MODELS.CODESTRAL_LATEST, display: 'Codestral' },
     { id: CLAUDE_MODELS.GEMMA_2_27B_IT, display: 'Gemma 2 27B' },
-    { id: CLAUDE_MODELS.GROK_BETA, display: 'Grok Beta' }
+    { id: CLAUDE_MODELS.GROK_BETA, display: 'Grok Beta' },
+    { id: CLAUDE_MODELS.GROK4, display: 'Grok-4' }
   ];
 
   // Safely find the display name for the currently selected model

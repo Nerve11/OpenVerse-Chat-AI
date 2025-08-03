@@ -35,7 +35,9 @@ export const CLAUDE_MODELS = {
   PIXTRAL_LARGE_LATEST: 'pixtral-large-latest',
   CODESTRAL_LATEST: 'codestral-latest',
   GEMMA_2_27B_IT: 'google/gemma-2-27b-it',
-  GROK_BETA: 'grok-beta'
+  GROK_BETA: 'grok-beta',
+  GROK4: 'x-ai/grok-4',
+  O3PRO: 'openai/o3-pro'
 };
 
 /**
@@ -66,11 +68,35 @@ export const isPuterAvailable = () => {
  * @param {function} onStreamUpdate - Callback for streaming updates
  * @param {string} model - The model to use (defaults to CLAUDE_3_5_SONNET)
  * @param {string} systemPrompt - Optional system prompt to influence model behavior
+ * @param {boolean} testMode - Whether to use test mode
+ * @param {number} temperature - The temperature for the model
  * @param {number} retryCount - Current retry count (internal use)
  * @returns {Promise<string>} The complete response
  */
-export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUDE_MODELS.CLAUDE_3_5_SONNET, systemPrompt = '', retryCount = 0) => {
+export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUDE_MODELS.CLAUDE_3_5_SONNET, systemPrompt = '', testMode = false, temperature = 1.0, retryCount = 0) => {
   let fullResponse = '';
+
+  // --- IMPROVED TEST MODE ---
+  if (testMode) {
+    debugLog('Using improved Test Mode. Simulating API stream.');
+    const mockResponse = "This is a mock response in test mode. The quick brown fox jumps over the lazy dog. This simulated stream demonstrates the UI's ability to handle incoming text chunks without making a real API call. Temperature is set to " + temperature.toFixed(1) + ".";
+    const chunks = mockResponse.split(' ');
+    
+    return new Promise(resolve => {
+      let i = 0;
+      function sendChunk() {
+        if (i < chunks.length) {
+          onStreamUpdate(chunks[i] + ' ');
+          i++;
+          setTimeout(sendChunk, 50); // Simulate delay
+        } else {
+          resolve(mockResponse);
+        }
+      }
+      sendChunk();
+    });
+  }
+  // --- END OF TEST MODE ---
 
   try {
     // Validate that we have a proper model specified
@@ -81,29 +107,22 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
       CLAUDE_MODELS.CLAUDE_3_7_SONNET, 
       CLAUDE_MODELS.CLAUDE_3_5_SONNET,
       CLAUDE_MODELS.GPT_4O,
-      CLAUDE_MODELS.GPT_4O_MINI,
       CLAUDE_MODELS.O1,
       CLAUDE_MODELS.O1_PRO,
-      CLAUDE_MODELS.O1_MINI,
       CLAUDE_MODELS.O3,
       CLAUDE_MODELS.O3_MINI,
       CLAUDE_MODELS.O4_MINI,
       CLAUDE_MODELS.GPT_4_1,
-      CLAUDE_MODELS.GPT_4_1_MINI,
-      CLAUDE_MODELS.GPT_4_1_NANO,
-      CLAUDE_MODELS.GPT_4_5_PREVIEW,
       CLAUDE_MODELS.GEMINI_2_0_FLASH,
-      CLAUDE_MODELS.GEMINI_1_5_FLASH,
       CLAUDE_MODELS.META_LLAMA_3_1_8B,
       CLAUDE_MODELS.META_LLAMA_3_1_70B,
       CLAUDE_MODELS.META_LLAMA_3_1_405B,
       CLAUDE_MODELS.DEEPSEEK_CHAT,
       CLAUDE_MODELS.DEEPSEEK_REASONER,
-      CLAUDE_MODELS.MISTRAL_LARGE_LATEST,
       CLAUDE_MODELS.PIXTRAL_LARGE_LATEST,
-      CLAUDE_MODELS.CODESTRAL_LATEST,
       CLAUDE_MODELS.GEMMA_2_27B_IT,
-      CLAUDE_MODELS.GROK_BETA
+      CLAUDE_MODELS.GROK_BETA,
+      CLAUDE_MODELS.GROK4
     ];
     
     // Check if selected model is in the supported list
@@ -177,7 +196,9 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
           
           response = await window.puter.ai.chat(messages, {
             model: modelToUse,
-            stream: true
+            stream: true,
+            testMode: testMode,
+            temperature: temperature
           });
         } else {
           // If no system prompt, use the simpler format with just the message and options
@@ -187,7 +208,9 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
           
           response = await window.puter.ai.chat(message, {
             model: modelToUse,
-            stream: true
+            stream: true,
+            testMode: testMode,
+            temperature: temperature
           });
         }
         

@@ -1,16 +1,20 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ThemeProvider as CustomThemeProvider } from './contexts/ThemeContext';
 import ChatInterface from './components/ChatInterface';
-import ModelSelector from './components/ModelSelector';
-import SystemPrompt from './components/SystemPrompt';
+import Controls from './components/Controls';
 import AuthManager from './components/AuthManager';
 import { isPuterAvailable, sendMessageToClaude, loadPuterScript, CLAUDE_MODELS } from './utils/puterApi';
 import { setDebugMode, isDebugMode, collectDiagnostics } from './utils/debugUtils';
 import { testPuterApi, testClaude37Access } from './utils/puterTest';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// Function to generate a unique ID for messages
+const generateUniqueId = () => {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
 // Function to handle Claude API calls
-const sendToClaude = async (message, setStreamingMessage, selectedModel, systemPrompt) => {
+const sendToClaude = async (message, setStreamingMessage, selectedModel, systemPrompt, testMode, temperature) => {
   try {
     // Check if Puter.js is loaded and available
     if (!isPuterAvailable()) {
@@ -18,7 +22,7 @@ const sendToClaude = async (message, setStreamingMessage, selectedModel, systemP
     }
 
     // Clear any previous streaming message
-    setStreamingMessage({ content: '', role: 'assistant', id: Date.now() });
+    setStreamingMessage({ content: '', role: 'assistant', id: generateUniqueId() });
 
     // Create response buffer to handle potential state update issues
     let responseBuffer = '';
@@ -44,7 +48,7 @@ const sendToClaude = async (message, setStreamingMessage, selectedModel, systemP
               return { 
                 content: responseBuffer, 
                 role: 'assistant', 
-                id: Date.now() 
+                id: generateUniqueId() 
               };
             }
             
@@ -69,7 +73,9 @@ const sendToClaude = async (message, setStreamingMessage, selectedModel, systemP
           });
         },
         selectedModel,
-        systemPrompt
+        systemPrompt,
+        testMode,
+        temperature
       );
 
       return true;
@@ -117,6 +123,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
   const inputRef = useRef(null);
   const currentStreamingMessageRef = useRef(null);
   const [debugActive, setDebugActive] = useState(isDebugMode());
+  const [testMode, setTestMode] = useState(false);
   const [selectedModel, setSelectedModel] = useState(CLAUDE_MODELS.CLAUDE_3_5_SONNET);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [systemPrompt, setSystemPrompt] = useState(() => {
@@ -126,6 +133,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
   });
   const [isSystemPromptVisible, setIsSystemPromptVisible] = useState(false);
   const [showPromptNotification, setShowPromptNotification] = useState(false);
+  const [temperature, setTemperature] = useState(1.0);
   
   // Keep the ref in sync with the state
   useEffect(() => {
@@ -243,7 +251,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
     const userMessage = {
       content: inputValue.trim(),
       role: 'user',
-      id: Date.now()
+      id: generateUniqueId()
     };
     
     setMessages(prev => [...prev, userMessage]);
@@ -263,13 +271,15 @@ const App = ({ puterLoaded, puterTimeout }) => {
       const modelToUse = selectedModel || CLAUDE_MODELS.CLAUDE_3_5_SONNET;
       
       // Clear any previous streaming message
-      setStreamingMessage({ content: '', role: 'assistant', id: Date.now() });
+      setStreamingMessage({ content: '', role: 'assistant', id: generateUniqueId() });
       
       const success = await sendToClaude(
         userMessage.content, 
         setStreamingMessage,
         modelToUse,
-        systemPrompt
+        systemPrompt,
+        testMode,
+        temperature
       );
       
       // Use the ref to access the most current streamingMessage
@@ -303,7 +313,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
         const assistantMessage = {
           content: finalContent,
           role: 'assistant',
-          id: currentMessage.id || Date.now()
+          id: currentMessage.id || generateUniqueId()
         };
         
         setMessages(prev => [...prev, assistantMessage]);
@@ -312,7 +322,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
         setMessages(prev => [...prev, {
           content: "Произошла ошибка при обработке запроса. Ответ не был получен. Пожалуйста, попробуйте снова.",
           role: 'assistant',
-          id: Date.now()
+          id: generateUniqueId()
         }]);
       }
     } catch (error) {
@@ -320,12 +330,18 @@ const App = ({ puterLoaded, puterTimeout }) => {
       setMessages(prev => [...prev, {
         content: "Произошла ошибка при обработке запроса. Пожалуйста, попробуйте снова.",
         role: 'assistant',
-        id: Date.now()
+        id: generateUniqueId()
       }]);
     } finally {
       setIsStreaming(false);
       setStreamingMessage(null);
     }
+  };
+
+  const handleDiscussCode = (code) => {
+    const formattedCode = "```\n" + code + "\n```\n\n";
+    setInputValue(formattedCode);
+    inputRef.current?.focus();
   };
 
   // Handle Enter key to send message
@@ -378,7 +394,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
   };
 
   const handleClearSystemPrompt = () => {
-    if (window.confirm("Вы уверены, что хотите удалить системный промпт?")) {
+    if (window.confirm("Are you sure you want to remove the system prompt?")) {
       console.log("System prompt cleared");
       setSystemPrompt('');
     }
@@ -425,6 +441,14 @@ const App = ({ puterLoaded, puterTimeout }) => {
     }
   };
 
+  const handleToggleTestMode = () => {
+    setTestMode(prev => !prev);
+  };
+
+  const handleTemperatureChange = (newTemperature) => {
+    setTemperature(newTemperature);
+  };
+
   // Handle authentication changes
   const handleAuthChange = (isAuth, user) => {
     if (isAuth && user) {
@@ -439,103 +463,87 @@ const App = ({ puterLoaded, puterTimeout }) => {
   };
 
   return (
-    <CustomThemeProvider>
-      <div className="main-container">
-        <div className="header">
-          <div className="logo-container">
-            <div className="logo" />
-            <span className="claude-sonnet-chat"><span>Claude Free Sonnet Chat</span></span>
-          </div>
-          <div className={`connected ${connectionStatusClass}`}>
-            <div className="group">
-              <span className="connected-1"><span>{connectionStatusText}</span></span>
-              <div className="vector" />
+    <ErrorBoundary>
+      <CustomThemeProvider>
+        <div className="main-container">
+          <div className="header">
+            <div className="logo-container">
+              <div className="logo" />
+              <span className="claude-sonnet-chat"><span>OpenVerse Chat</span></span>
             </div>
+            <div className={`connected ${connectionStatusClass}`}>
+              <div className="group">
+                <span className="connected-1"><span>{connectionStatusText}</span></span>
+                <div className="vector" />
+              </div>
+            </div>
+            <AuthManager onAuthChange={handleAuthChange} />
+            <div className="theme" />
           </div>
-          <AuthManager onAuthChange={handleAuthChange} />
-          <div className="theme" />
-        </div>
-        
-        <div className="chat">
-          <ChatInterface 
-            messages={messages} 
-            setMessages={setMessages}
-            streamingMessage={streamingMessage}
-            puterLoaded={puterLoaded}
-          />
-        </div>
-        
-        <div className="write-message">
-          <input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message Claude Free Sonnet"
-            disabled={!puterLoaded || isStreaming}
-            className="message-claude-sonnet"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              width: 'calc(100% - 100px)'
-            }}
-          />
-          <div className="path" />
-          <div className="frame-3" onClick={handleSendMessage} />
-        </div>
-        
-        <div className="flex-row">
-          <ErrorBoundary>
-            <SystemPrompt 
-              systemPrompt={systemPrompt} 
-              onSystemPromptChange={handleSystemPromptChange}
-              isVisible={isSystemPromptVisible}
-              onToggleVisibility={toggleSystemPromptVisibility}
-              onClearPrompt={handleClearSystemPrompt}
-            />
-          </ErrorBoundary>
           
-          <div className="choose-model">
-            <ErrorBoundary>
-              <ModelSelector 
-                selectedModel={selectedModel}
-                onSelectModel={handleSelectModel}
-                isOpen={isModelDropdownOpen}
-                toggleDropdown={handleModelSelect}
-              />
-            </ErrorBoundary>
+          <div className="chat">
+            <ChatInterface 
+              messages={messages} 
+              setMessages={setMessages}
+              streamingMessage={streamingMessage}
+              puterLoaded={puterLoaded}
+              onDiscussCode={handleDiscussCode}
+            />
           </div>
-          <div className="clear-chat" onClick={handleClearChat}>
-            <div className="group-6">
-              <span className="clear-chat-7"><span>Clear chat</span></span>
-              <div className="vector-8" />
+          
+          <div className="write-message">
+            <input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message Claude Free Sonnet"
+              disabled={!puterLoaded || isStreaming}
+              className="message-claude-sonnet"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                width: 'calc(100% - 100px)'
+              }}
+            />
+            <div className="path" />
+            <div className="frame-3" onClick={handleSendMessage} />
+          </div>
+          
+          <Controls
+            systemPrompt={systemPrompt}
+            onSystemPromptChange={handleSystemPromptChange}
+            isSystemPromptVisible={isSystemPromptVisible}
+            onToggleSystemPromptVisibility={toggleSystemPromptVisibility}
+            onClearSystemPrompt={handleClearSystemPrompt}
+            selectedModel={selectedModel}
+            onSelectModel={handleSelectModel}
+            isModelDropdownOpen={isModelDropdownOpen}
+            onToggleModelDropdown={handleModelSelect}
+            onClearChat={handleClearChat}
+            onSearch={handleSearch}
+            debugActive={debugActive}
+            onToggleDebug={handleToggleDebug}
+            testMode={testMode}
+            onToggleTestMode={handleToggleTestMode}
+            temperature={temperature}
+            onTemperatureChange={handleTemperatureChange}
+          />
+          
+          {showPromptNotification && systemPrompt && (
+            <div className="system-prompt-notification">
+              <div className="notification-icon">S</div>
+              <div className="notification-text">System prompt activated</div>
             </div>
-          </div>
-          <div className="search" onClick={handleSearch}>
-            <div className="group-9">
-              <span className="search-a"><span>Search</span></span>
-            </div>
-            <div className="vector-b" />
-          </div>
-          <div className={`debug-button ${debugActive ? 'active' : ''}`} onClick={handleToggleDebug}>
-            <div className="group-debug">
-              <span className="debug-text"><span>Debug</span></span>
-            </div>
-          </div>
+          )}
         </div>
-        
-        {showPromptNotification && systemPrompt && (
-          <div className="system-prompt-notification">
-            <div className="notification-icon">S</div>
-            <div className="notification-text">Системный промпт активирован</div>
-          </div>
-        )}
-        
-        <span className="designed-by-chronix"><span>© Designed by Chronix</span></span>
-      </div>
-    </CustomThemeProvider>
+      </CustomThemeProvider>
+    </ErrorBoundary>
   );
 };
 
-export default App; 
+
+export default App;
+
+ 

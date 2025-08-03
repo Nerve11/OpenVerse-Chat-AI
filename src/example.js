@@ -1,7 +1,4 @@
-/**
- * Example of using Claude 3.5 Sonnet via Puter.js API directly
- * This demonstrates the minimal implementation needed
- */
+
 
 // Claude model names
 const CLAUDE_MODELS = {

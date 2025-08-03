@@ -9,6 +9,10 @@ const PROMPT_TEMPLATES = [
     text: "Ты опытный программист и эксперт в области разработки программного обеспечения. Давай подробные технические объяснения, примеры кода и учебные материалы, когда это уместно."
   },
   {
+    name: "Code Vibe Ассистент",
+    text: "Ты — дружелюбный и опытный ИИ-ассистент по программированию по имени Code Vibe. Твоя задача — помогать пользователям писать, отлаживать и улучшать код. Предоставляй четкие и эффективные решения. Всегда оборачивай код в блоки markdown с указанием языка. Будь готов к обсуждению и совместной работе над кодом."
+  },
+  {
     name: "Креативный писатель",
     text: "Ты креативный писатель с богатым воображением. Помогай в создании увлекательных историй, персонажей и сюжетов. Предлагай оригинальные идеи и развивай существующие концепции."
   },
@@ -79,7 +83,7 @@ const SystemPromptEditor = ({
 
   return (
     <div className="system-prompt-container">
-      <h3>Системный промпт</h3>
+      <h3>System prompt</h3>
       <p className="system-prompt-description">
         Системный промпт определяет поведение и настройки AI модели. 
         Используйте его чтобы задать контекст, указать роль или стиль ответов.
@@ -181,11 +185,11 @@ const SystemPrompt = ({
         <div 
           className={`system-prompt ${safeSystemPrompt ? 'active' : ''}`} 
           onClick={onToggleVisibility}
-          title="Настроить системный промпт"
+          title="Configure system prompt"
         >
           <div className="system-prompt-icon"></div>
           <div className="system-prompt-text">
-            {safeSystemPrompt ? 'Системный промпт активен' : 'Системный промпт'}
+            {safeSystemPrompt ? 'System prompt active' : 'Системный промпт'}
           </div>
         </div>
         
@@ -196,7 +200,7 @@ const SystemPrompt = ({
               e.stopPropagation();
               onClearPrompt();
             }} 
-            title="Очистить системный промпт"
+            title="Clear system prompt"
           >
             <div className="system-prompt-clear-icon" />
           </div>

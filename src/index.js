@@ -29,7 +29,7 @@ const App = lazy(() => {
 const LoadingComponent = () => (
   <div className="loading-container">
     <div className="spinner"></div>
-    <p className="loading-text">Loading Claude 3.7 Sonnet Chat...</p>
+    <p className="loading-text">Loading OpenVerse-Chat-AI...</p>
   </div>
 );
 

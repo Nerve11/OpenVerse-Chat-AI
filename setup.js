@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const chalk = require('chalk'); // Для цветного вывода в консоль
 
-console.log(chalk.blue.bold('🚀 Настройка проекта Claude 3.7 Sonnet Chat UI...'));
+console.log(chalk.blue.bold('🚀 Настройка проекта OpenVerse-Chat-AI...'));
 
 // Базовый путь проекта
 const projectRoot = process.cwd();

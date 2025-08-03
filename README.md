@@ -1,69 +1,89 @@
-# Claude 3.7 Sonnet Chat Interface
+# OpenVerse Chat AI
 
-This application provides a reliable web interface for accessing Anthropic's powerful Claude 3.7 Sonnet AI assistant. This application uses the Puter.js API to provide real-time communication with Claude.
+A modern, feature-rich chat interface designed to interact with a variety of powerful AI models through the Puter.js platform. This application provides a seamless and dynamic user experience for chatting with AI, configuring model behavior, and even executing code snippets directly within the interface.
 
-## Features
+## ✨ Key Features
 
-- **Direct Claude 3.7 Sonnet Access**: Chat directly with Claude 3.7 Sonnet without requiring an API key
-- **Streaming Responses**: See Claude's responses appear in real-time as they're generated
-- **Robust API Integration**: Multiple fallback mechanisms ensure consistent access to Claude
-- **Responsive Design**: Works on desktop and mobile devices
-- **Debugging Tools**: Built-in diagnostic features to help troubleshoot connection issues
-- **Enhanced Reliability**: Automatically recovers from temporary API issues
+- **Multi-Model Support**: Seamlessly switch between various AI models, including Claude, GPT, Llama, Gemini, and more.
+- **Real-time Streaming**: Receive AI responses in real-time with streaming support.
+- **Customizable System Prompts**: Define the AI's behavior, role, or style by setting custom system prompts.
+- **Adjustable Temperature**: Fine-tune the creativity and randomness of the AI's responses with a temperature slider.
+- **User Authentication**: Securely sign in and manage your session using Puter.js authentication.
+- **Markdown & Code Highlighting**: Renders Markdown responses beautifully with syntax highlighting for code blocks.
+- **Test & Debug Modes**: Includes a test mode for UI testing without API calls and a debug mode for diagnostics.
+- **Responsive Design**: A clean and responsive user interface that works across different devices.
 
-## How It Works
+## 🛠️ Technologies Used
 
-This application uses [Puter.js](https://docs.puter.com/AI/chat/) to communicate directly with Claude 3.7 Sonnet. The integration:
+- **Frontend**: React.js
+- **Styling**: styled-components, Framer Motion for animations.
+- **API Integration**: Puter.js (for AI model access and authentication)
+- **Markdown Rendering**: `react-markdown`
+- **Syntax Highlighting**: `react-syntax-highlighter`
 
-- Sends user messages directly to Claude through the Puter API
-- Handles streaming of responses back to the user interface
-- Implements multiple fallback mechanisms if the primary connection fails
-- Provides debugging tools to diagnose and fix connection issues
+## 🚀 Getting Started
 
-## Troubleshooting
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
 
-If you encounter issues with Claude 3.7 access, try these steps:
+### Prerequisites
 
-1. **Click the Debug button** in the bottom right corner to activate diagnostic mode
-2. Check the browser console (F12) for diagnostic information
-3. Verify that `https://js.puter.com/v2/` is accessible from your network
-4. Try refreshing the page or clearing your browser cache
-5. If issues persist, the application will automatically try alternative connection methods
+Make sure you have Node.js and npm installed on your system.
+- [Node.js](https://nodejs.org/) (which includes npm)
 
-## Adding URL Parameters
+### Installation
 
-You can add the following parameters to the URL:
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/nerve11/OpenVerse-Chat-AI.git
+    cd OpenVerse-Chat-AI-main
+    ```
 
-- `?debug=true` - Activates debug mode on startup
-- `?model=claude-3-sonnet-20240229` - Explicitly set the model to use
+2.  **Run the setup script:**
+    The project includes a setup script that installs dependencies and creates necessary configuration files.
+    ```bash
+    node setup.js
+    ```
+    This command will install all required `npm` packages and automatically start the development server.
 
-## Development
+3.  **Manual Installation (Alternative):**
+    If you prefer to set up the project manually:
+    ```bash
+    npm install
+    ```
 
-This application uses React and modern web technologies for a responsive, efficient user experience.
+## 📜 Available Scripts
 
-### Key Files
+In the project directory, you can run the following commands:
 
-- `src/utils/puterApi.js` - Core implementation of Claude API integration
-- `src/utils/fallbackApi.js` - Fallback mechanisms for reliable access
-- `src/utils/debugUtils.js` - Debugging and diagnostic tools
-- `src/App.js` - Main application component
+### `npm start`
 
-### Local Development
+Runs the app in development mode.
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser. The page will reload if you make edits.
 
-```bash
-# Install dependencies
-npm install
+### `npm test`
 
-# Start development server
-npm start
+Launches the test runner in interactive watch mode.
 
-# Build for production
-npm run build
-```
+### `npm run build`
 
-## Credits
+Builds the app for production to the `build` folder. It correctly bundles React in production mode and optimizes the build for the best performance.
 
-- UI Design by Chronix
-- Backend access via Puter.js API
+### `npm run eject`
 
-## Ready to receive feedback in telegram - @Trivialsion
+**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+
+## ⚙️ Configuration
+
+### How It Works
+
+This application is architected to be "backend-less" from the user's perspective. It uses **Puter.js**, which is loaded via a script tag in `public/index.html`. Puter.js handles user authentication and securely proxies API requests to the various AI models without requiring you to manage API keys in a `.env` file.
+
+### System Prompts
+
+- You can configure a **System Prompt** by clicking the "Системный промпт" button in the UI.
+- This allows you to set a persistent instruction or context for the AI model, influencing its personality, response style, and behavior for the entire session.
+- The system prompt is saved in your browser's `localStorage`.
+
+## Acknowledgements
+This project was created to demonstrate a powerful and flexible chat UI using modern web technologies and the Puter.js platform.

@@ -14,11 +14,14 @@
             padding: 20px;
             border-radius: 5px;
         }
-        select, textarea, button {
+        select, textarea, button, input[type="range"] {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
             box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            width: auto;
         }
         #response {
             margin-top: 20px;
@@ -109,6 +112,16 @@
             <label for="message">Message:</label>
             <textarea id="message" rows="5" placeholder="Enter your message"></textarea>
         </div>
+
+        <div>
+            <label for="temperature">Temperature: <span id="temp-value">1.0</span></label>
+            <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
+        </div>
+
+        <div>
+            <input type="checkbox" id="test-mode" />
+            <label for="test-mode">Test Mode</label>
+        </div>
         
         <button id="send-btn">Send Message</button>
         <button id="stream-btn">Stream Response</button>
@@ -124,11 +137,19 @@
         const modelEl = document.getElementById('model');
         const systemPromptEl = document.getElementById('system-prompt');
         const messageEl = document.getElementById('message');
+        const testModeEl = document.getElementById('test-mode');
+        const temperatureEl = document.getElementById('temperature');
+        const tempValueEl = document.getElementById('temp-value');
         const sendBtn = document.getElementById('send-btn');
         const streamBtn = document.getElementById('stream-btn');
         const retryBtn = document.getElementById('retry-btn');
         const statusEl = document.getElementById('status');
         const responseEl = document.getElementById('response');
+
+        // Temperature slider value display
+        temperatureEl.addEventListener('input', () => {
+            tempValueEl.textContent = parseFloat(temperatureEl.value).toFixed(1);
+        });
         
         // State tracking
         let lastUsedModel = '';
@@ -203,12 +224,42 @@
             // Try with streaming by default for retries
             streamMessage(true);
         });
+
+        // --- MOCK STREAM FOR TEST MODE ---
+        function runTestModeStream() {
+            const temperature = parseFloat(temperatureEl.value);
+            const mockResponse = `This is a mock response in test mode. The temperature is set to ${temperature.toFixed(1)}. This simulated stream demonstrates the UI's ability to handle incoming text chunks without making a real API call.`;
+            const chunks = mockResponse.split(' ');
+            let i = 0;
+            responseEl.textContent = '';
+            responseEl.classList.add('streaming');
+            statusEl.textContent = 'Simulating stream in Test Mode...';
+
+            function sendChunk() {
+                if (i < chunks.length) {
+                    responseEl.textContent += chunks[i] + ' ';
+                    i++;
+                    setTimeout(sendChunk, 50); // Simulate delay
+                } else {
+                    responseEl.classList.remove('streaming');
+                    statusEl.textContent = 'Test Mode stream finished.';
+                }
+            }
+            sendChunk();
+        }
         
         // Stream message
         async function streamMessage(isRetry = false) {
             const model = modelEl.value;
             const systemPrompt = systemPromptEl.value.trim();
             const message = messageEl.value.trim();
+            const testMode = testModeEl.checked;
+            const temperature = parseFloat(temperatureEl.value);
+
+            if (testMode) {
+                runTestModeStream();
+                return;
+            }
             
             if (!message) {
                 responseEl.textContent = 'Please enter a message';
@@ -216,12 +267,16 @@
             }
             
             // Update UI for streaming
-            statusEl.textContent = `Streaming response from ${model}...${isRetry ? ` (Retry ${retryCount}/${MAX_RETRIES})` : ''}`;
+            statusEl.textContent = `Streaming response from ${model}...${isRetry ? ` (Retry ${retryCount}/${MAX_RETRIES})` : ''}`;;
             if (!isRetry) {
                 responseEl.textContent = '';
             } else {
                 // For retries, append a note
-                responseEl.textContent += `\n\n[Retrying... Attempt ${retryCount}/${MAX_RETRIES}]\n\n`;
+                responseEl.textContent += `
+
+[Retrying... Attempt ${retryCount}/${MAX_RETRIES}]
+
+`;
             }
             responseEl.classList.remove('error', 'warning');
             responseEl.classList.add('streaming');
@@ -253,6 +308,12 @@
                     }
                 }, STREAM_TIMEOUT);
                 
+                const options = {
+                    model: model,
+                    stream: true,
+                    temperature: temperature
+                };
+
                 // If system prompt is provided, use messages array format
                 if (systemPrompt) {
                     const messages = [
@@ -260,16 +321,10 @@
                         { role: 'user', content: message }
                     ];
                     
-                    response = await window.puter.ai.chat(messages, {
-                        model: model,
-                        stream: true
-                    });
+                    response = await window.puter.ai.chat(messages, options);
                 } else {
                     // Otherwise use standard format
-                    response = await window.puter.ai.chat(message, {
-                        model: model,
-                        stream: true
-                    });
+                    response = await window.puter.ai.chat(message, options);
                 }
                 
                 try {
@@ -349,6 +404,14 @@
             const model = modelEl.value;
             const systemPrompt = systemPromptEl.value.trim();
             const message = messageEl.value.trim();
+            const testMode = testModeEl.checked;
+            const temperature = parseFloat(temperatureEl.value);
+
+            if (testMode) {
+                responseEl.textContent = `This is a mock response in test mode. Temperature is set to ${temperature.toFixed(1)}.`;
+                statusEl.textContent = 'Test Mode response received.';
+                return;
+            }
             
             if (!message) {
                 responseEl.textContent = 'Please enter a message';
@@ -366,6 +429,12 @@
                 
                 let response;
                 
+                const options = {
+                    model: model,
+                    stream: false,
+                    temperature: temperature
+                };
+
                 // If system prompt is provided, use messages array format
                 if (systemPrompt) {
                     const messages = [
@@ -373,16 +442,10 @@
                         { role: 'user', content: message }
                     ];
                     
-                    response = await window.puter.ai.chat(messages, {
-                        model: model,
-                        stream: false
-                    });
+                    response = await window.puter.ai.chat(messages, options);
                 } else {
                     // Otherwise use standard format
-                    response = await window.puter.ai.chat(message, {
-                        model: model,
-                        stream: false
-                    });
+                    response = await window.puter.ai.chat(message, options);
                 }
                 
                 // Extract response text
@@ -428,4 +491,4 @@
         init();
     </script>
 </body>
-</html> 
+</html>

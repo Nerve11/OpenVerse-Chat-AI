@@ -1,4 +1,4 @@
-// Service Worker для Claude 3.7 Sonnet Chat
+// Service Worker для OpenVerse-Chat-AI
 const CACHE_NAME = 'claude-chat-v1';
 
 // Ресурсы для предварительного кэширования

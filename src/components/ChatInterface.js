@@ -6,15 +6,15 @@ import { isPuterAvailable } from '../utils/puterApi';
 // Указываем ESLint, что puter - это глобальная переменная, определенная извне
 /* eslint-enable no-undef */
 
-const ChatInterface = ({ messages, streamingMessage, puterLoaded }) => {
+const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode }) => {
   const messagesEndRef = useRef(null);
 
   // Memoize the message components to prevent unnecessary re-rendering
   const messageElements = useMemo(() => {
     return messages.map(message => (
-      <Message key={`message-${message.id}`} message={message} />
+      <Message key={`message-${message.id}`} message={message} onDiscussCode={onDiscussCode} />
     ));
-  }, [messages]);
+  }, [messages, onDiscussCode]);
 
   // Memoize the streaming message component
   const streamingElement = useMemo(() => {
@@ -23,9 +23,10 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded }) => {
         key={`streaming-${streamingMessage.id || 'current'}`} 
         message={streamingMessage} 
         streaming={true} 
+        onDiscussCode={onDiscussCode}
       />
     ) : null;
-  }, [streamingMessage]);
+  }, [streamingMessage, onDiscussCode]);
 
   // Show Puter.js API error message if not loaded and no messages
   const apiErrorElement = useMemo(() => {
@@ -51,7 +52,7 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded }) => {
     <div className="messages-container">
       {messages.length === 0 && !streamingMessage && !apiErrorElement && (
         <div className="welcome-message">
-          <h2>Welcome to Claude 3.7 Sonnet Chat</h2>
+          <h2>Welcome to OpenVerse Chat AI</h2>
         </div>
       )}
       {apiErrorElement}
