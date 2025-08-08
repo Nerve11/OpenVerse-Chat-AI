@@ -28,7 +28,7 @@ Follow these instructions to get a copy of the project up and running on your lo
 ### Prerequisites
 
 Make sure you have Node.js and npm installed on your system.
-- [Node.js](https://nodejs.org/) (which includes npm)
+- [Node.js](https://nodejs.org/en/download) (which includes npm)
 
 ### Installation
 
