@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Puter.js Model Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        select, textarea, button, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            width: auto;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            min-height: 200px;
+        }
+        .status {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #d9534f;
+        }
+        .warning {
+            color: #856404;
+            background-color: #fff3cd;
+        }
+        .retry-button {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: none;
+        }
+        .retry-button:hover {
+            background-color: #0069d9;
+        }
+        
+        /* Add a pulsing animation for streaming */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .streaming {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Puter.js Model Test</h1>
+        
+        <div>
+            <label for="model">Select Model:</label>
+            <select id="model">
+                <option value="claude-3-7-sonnet">Claude 3.7 Sonnet</option>
+                <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                <option value="o1">o1</option>
+                <option value="o1-pro">o1-pro</option>
+                <option value="o1-mini">o1-mini</option>
+                <option value="o3">o3</option>
+                <option value="o3-mini">o3-mini</option>
+                <option value="o4-mini">o4-mini</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                <option value="gpt-4.1">GPT-4.1</option>
+                <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
+                <option value="gpt-4.5-preview">GPT-4.5 Preview</option>
+                <option value="meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo">Meta Llama 3.1 8B</option>
+                <option value="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo">Meta Llama 3.1 70B</option>
+                <option value="meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo">Meta Llama 3.1 405B</option>
+                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                <option value="deepseek-chat">DeepSeek Chat</option>
+                <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                <option value="mistral-large-latest">Mistral Large</option>
+                <option value="pixtral-large-latest">Pixtral Large</option>
+                <option value="codestral-latest">Codestral</option>
+                <option value="google/gemma-2-27b-it">Gemma 2 27B</option>
+                <option value="grok-beta">Grok Beta</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="system-prompt">System Prompt (Optional):</label>
+            <textarea id="system-prompt" rows="3" placeholder="Enter system prompt if needed"></textarea>
+        </div>
+        
+        <div>
+            <label for="message">Message:</label>
+            <textarea id="message" rows="5" placeholder="Enter your message"></textarea>
+        </div>
+
+        <div>
+            <label for="temperature">Temperature: <span id="temp-value">1.0</span></label>
+            <input type="range" id="temperature" min="0" max="2" step="0.1" value="1.0">
+        </div>
+
+        <div>
+            <input type="checkbox" id="test-mode" />
+            <label for="test-mode">Test Mode</label>
+        </div>
+        
+        <button id="send-btn">Send Message</button>
+        <button id="stream-btn">Stream Response</button>
+        <button id="retry-btn" class="retry-button">Retry (Response Incomplete)</button>
+        
+        <div class="status" id="status">Loading Puter.js...</div>
+        <div id="response">Response will appear here</div>
+    </div>
+
+    <script src="https://js.puter.com/v2/"></script>
+    <script>
+        // DOM elements
+        const modelEl = document.getElementById('model');
+        const systemPromptEl = document.getElementById('system-prompt');
+        const messageEl = document.getElementById('message');
+        const testModeEl = document.getElementById('test-mode');
+        const temperatureEl = document.getElementById('temperature');
+        const tempValueEl = document.getElementById('temp-value');
+        const sendBtn = document.getElementById('send-btn');
+        const streamBtn = document.getElementById('stream-btn');
+        const retryBtn = document.getElementById('retry-btn');
+        const statusEl = document.getElementById('status');
+        const responseEl = document.getElementById('response');
+
+        // Temperature slider value display
+        temperatureEl.addEventListener('input', () => {
+            tempValueEl.textContent = parseFloat(temperatureEl.value).toFixed(1);
+        });
+        
+        // State tracking
+        let lastUsedModel = '';
+        let responseWasIncomplete = false;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+        
+        // Check if Puter.js is available
+        function isPuterAvailable() {
+            return typeof window.puter !== 'undefined' && 
+                   window.puter && 
+                   window.puter.ai && 
+                   typeof window.puter.ai.chat === 'function';
+        }
+        
+        // Initialize
+        function init() {
+            if (isPuterAvailable()) {
+                statusEl.textContent = 'Connected to Puter.js';
+                sendBtn.disabled = false;
+                streamBtn.disabled = false;
+            } else {
+                statusEl.textContent = 'Waiting for Puter.js to initialize...';
+                sendBtn.disabled = true;
+                streamBtn.disabled = true;
+                
+                // Check again in 1 second
+                setTimeout(init, 1000);
+            }
+        }
+        
+        // Function to check if response appears incomplete
+        function isResponseIncomplete(text) {
+            if (!text) return true;
+            
+            // Check for very short responses
+            if (text.length < 50) {
+                const trimmed = text.trim();
+                // Check if the response ends properly
+                if (!trimmed.endsWith('.') && !trimmed.endsWith('?') && 
+                    !trimmed.endsWith('!') && !trimmed.endsWith(':') && 
+                    !trimmed.endsWith(')') && !trimmed.endsWith('*') && 
+                    !trimmed.endsWith('"') && !trimmed.endsWith("'")) {
+                    return true;
+                }
+            }
+            
+            // Check for cut-off sentences
+            const lastChar = text.trim().slice(-1);
+            const endsWithWord = /[a-zA-Z0-9]$/.test(text.trim());
+            // If it ends with a word (no punctuation) and isn't very long, likely incomplete
+            if (endsWithWord && text.length < 200) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Handle retry button click
+        retryBtn.addEventListener('click', () => {
+            if (retryCount >= MAX_RETRIES) {
+                // Reset retry count and notify user
+                retryCount = 0;
+                retryBtn.style.display = 'none';
+                statusEl.textContent = 'Max retries reached. Please try a different model or message.';
+                return;
+            }
+            
+            retryCount++;
+            retryBtn.textContent = `Retry (${retryCount}/${MAX_RETRIES})`;
+            
+            // Try with streaming by default for retries
+            streamMessage(true);
+        });
+
+        // --- MOCK STREAM FOR TEST MODE ---
+        function runTestModeStream() {
+            const temperature = parseFloat(temperatureEl.value);
+            const mockResponse = `This is a mock response in test mode. The temperature is set to ${temperature.toFixed(1)}. This simulated stream demonstrates the UI's ability to handle incoming text chunks without making a real API call.`;
+            const chunks = mockResponse.split(' ');
+            let i = 0;
+            responseEl.textContent = '';
+            responseEl.classList.add('streaming');
+            statusEl.textContent = 'Simulating stream in Test Mode...';
+
+            function sendChunk() {
+                if (i < chunks.length) {
+                    responseEl.textContent += chunks[i] + ' ';
+                    i++;
+                    setTimeout(sendChunk, 50); // Simulate delay
+                } else {
+                    responseEl.classList.remove('streaming');
+                    statusEl.textContent = 'Test Mode stream finished.';
+                }
+            }
+            sendChunk();
+        }
+        
+        // Stream message
+        async function streamMessage(isRetry = false) {
+            const model = modelEl.value;
+            const systemPrompt = systemPromptEl.value.trim();
+            const message = messageEl.value.trim();
+            const testMode = testModeEl.checked;
+            const temperature = parseFloat(temperatureEl.value);
+
+            if (testMode) {
+                runTestModeStream();
+                return;
+            }
+            
+            if (!message) {
+                responseEl.textContent = 'Please enter a message';
+                return;
+            }
+            
+            // Update UI for streaming
+            statusEl.textContent = `Streaming response from ${model}...${isRetry ? ` (Retry ${retryCount}/${MAX_RETRIES})` : ''}`;;
+            if (!isRetry) {
+                responseEl.textContent = '';
+            } else {
+                // For retries, append a note
+                responseEl.textContent += `
+
+[Retrying... Attempt ${retryCount}/${MAX_RETRIES}]
+
+`;
+            }
+            responseEl.classList.remove('error', 'warning');
+            responseEl.classList.add('streaming');
+            
+            // Hide retry button during streaming
+            retryBtn.style.display = 'none';
+            
+            // Store model for potential retries
+            lastUsedModel = model;
+            
+            try {
+                let response;
+                let fullResponse = '';
+                let isComplete = false;
+                let streamTimeout;
+                const STREAM_TIMEOUT = 30000; // 30 seconds
+                
+                // Set timeout to detect stalled streams
+                streamTimeout = setTimeout(() => {
+                    if (!isComplete) {
+                        statusEl.textContent = 'Stream timeout - response may be incomplete';
+                        responseEl.textContent += '\n\n[Response may be incomplete due to timeout]';
+                        responseEl.classList.add('warning');
+                        responseEl.classList.remove('streaming');
+                        
+                        // Show retry button for timeouts
+                        responseWasIncomplete = true;
+                        retryBtn.style.display = 'inline-block';
+                    }
+                }, STREAM_TIMEOUT);
+                
+                const options = {
+                    model: model,
+                    stream: true,
+                    temperature: temperature
+                };
+
+                // If system prompt is provided, use messages array format
+                if (systemPrompt) {
+                    const messages = [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: message }
+                    ];
+                    
+                    response = await window.puter.ai.chat(messages, options);
+                } else {
+                    // Otherwise use standard format
+                    response = await window.puter.ai.chat(message, options);
+                }
+                
+                try {
+                    // Handle streaming response
+                    for await (const part of response) {
+                        // Reset timeout on each chunk
+                        clearTimeout(streamTimeout);
+                        streamTimeout = setTimeout(() => {
+                            if (!isComplete) {
+                                statusEl.textContent = 'Stream timeout - response may be incomplete';
+                                responseEl.textContent += '\n\n[Response may be incomplete due to timeout]';
+                                responseEl.classList.add('warning');
+                                responseEl.classList.remove('streaming');
+                                
+                                // Show retry button for timeouts
+                                responseWasIncomplete = true;
+                                retryBtn.style.display = 'inline-block';
+                            }
+                        }, STREAM_TIMEOUT);
+                        
+                        if (part && part.text) {
+                            if (isRetry) {
+                                // For retries, we're appending to existing text
+                                responseEl.textContent += part.text;
+                            } else {
+                                responseEl.textContent = fullResponse + part.text;
+                            }
+                            fullResponse += part.text;
+                        }
+                    }
+                    
+                    isComplete = true;
+                    clearTimeout(streamTimeout);
+                    responseEl.classList.remove('streaming');
+                    
+                    // Check if response seems complete
+                    responseWasIncomplete = isResponseIncomplete(fullResponse);
+                    
+                    if (responseWasIncomplete) {
+                        responseEl.textContent += '\n\n[Response appears to be incomplete]';
+                        statusEl.textContent = 'Warning: Response appears incomplete';
+                        responseEl.classList.add('warning');
+                        retryBtn.style.display = 'inline-block';
+                    } else {
+                        statusEl.textContent = 'Streaming completed';
+                        retryBtn.style.display = 'none';
+                        retryCount = 0;
+                    }
+                } catch (streamError) {
+                    console.error('Error during streaming:', streamError);
+                    clearTimeout(streamTimeout);
+                    responseEl.textContent += '\n\n[Streaming was interrupted: ' + streamError.message + ']';
+                    statusEl.textContent = 'Error: Streaming interrupted';
+                    responseEl.classList.add('error');
+                    responseEl.classList.remove('streaming');
+                    
+                    // Show retry button for stream errors
+                    responseWasIncomplete = true;
+                    retryBtn.style.display = 'inline-block';
+                }
+            } catch (error) {
+                clearTimeout(streamTimeout);
+                responseEl.textContent += '\n\nError: ' + error.message;
+                statusEl.textContent = 'Error occurred';
+                responseEl.classList.add('error');
+                responseEl.classList.remove('streaming');
+                console.error(`Error with model ${model}:`, error);
+                
+                // Show retry button for errors
+                responseWasIncomplete = true;
+                retryBtn.style.display = 'inline-block';
+            }
+        }
+        
+        // Send message (non-streaming)
+        async function sendMessage() {
+            const model = modelEl.value;
+            const systemPrompt = systemPromptEl.value.trim();
+            const message = messageEl.value.trim();
+            const testMode = testModeEl.checked;
+            const temperature = parseFloat(temperatureEl.value);
+
+            if (testMode) {
+                responseEl.textContent = `This is a mock response in test mode. Temperature is set to ${temperature.toFixed(1)}.`;
+                statusEl.textContent = 'Test Mode response received.';
+                return;
+            }
+            
+            if (!message) {
+                responseEl.textContent = 'Please enter a message';
+                return;
+            }
+            
+            try {
+                statusEl.textContent = `Sending message to ${model}...`;
+                responseEl.textContent = 'Thinking...';
+                responseEl.classList.remove('error', 'warning', 'streaming');
+                retryBtn.style.display = 'none';
+                
+                // Store model for potential retries
+                lastUsedModel = model;
+                
+                let response;
+                
+                const options = {
+                    model: model,
+                    stream: false,
+                    temperature: temperature
+                };
+
+                // If system prompt is provided, use messages array format
+                if (systemPrompt) {
+                    const messages = [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: message }
+                    ];
+                    
+                    response = await window.puter.ai.chat(messages, options);
+                } else {
+                    // Otherwise use standard format
+                    response = await window.puter.ai.chat(message, options);
+                }
+                
+                // Extract response text
+                let responseText = '';
+                if (response && response.message && response.message.content) {
+                    responseText = response.message.content[0].text;
+                    responseEl.textContent = responseText;
+                } else {
+                    responseText = 'Unexpected response format: ' + JSON.stringify(response);
+                    responseEl.textContent = responseText;
+                }
+                
+                // Check if response seems incomplete
+                responseWasIncomplete = isResponseIncomplete(responseText);
+                if (responseWasIncomplete) {
+                    responseEl.textContent += '\n\n[Response appears to be incomplete]';
+                    statusEl.textContent = 'Warning: Response appears incomplete';
+                    responseEl.classList.add('warning');
+                    retryBtn.style.display = 'inline-block';
+                } else {
+                    statusEl.textContent = 'Response received';
+                }
+            } catch (error) {
+                responseEl.textContent = 'Error: ' + error.message;
+                statusEl.textContent = 'Error occurred';
+                responseEl.classList.add('error');
+                console.error(`Error with model ${model}:`, error);
+                
+                // Show retry button for errors
+                responseWasIncomplete = true;
+                retryBtn.style.display = 'inline-block';
+            }
+        }
+        
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        streamBtn.addEventListener('click', streamMessage);
+        
+        // Initialize when loaded
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Try to initialize immediately as well
+        init();
+    </script>
+</body>
+</html>
