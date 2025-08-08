@@ -87,3 +87,7 @@ This application is architected to be "backend-less" from the user's perspective
 
 ## Acknowledgements
 This project was created to demonstrate a powerful and flexible chat UI using modern web technologies and the Puter.js platform.
+
+## Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=nerve11/OpenVerse-Chat-AI&type=Date)](https://star-history.com/#nerve11/OpenVerse-Chat-AI&Date)
+
