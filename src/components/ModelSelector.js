@@ -66,7 +66,8 @@ const ModelSelector = ({ selectedModel, onSelectModel, isOpen, toggleDropdown })
     { id: CLAUDE_MODELS.PIXTRAL_LARGE_LATEST, display: 'Pixtral Large' },
     { id: CLAUDE_MODELS.GEMMA_2_27B_IT, display: 'Gemma 2 27B' },
     { id: CLAUDE_MODELS.GROK_BETA, display: 'Grok Beta' },
-    { id: CLAUDE_MODELS.GROK4, display: 'Grok-4' }
+    { id: CLAUDE_MODELS.GROK4, display: 'Grok-4' },
+    { id: CLAUDE_MODELS.GPT5, display: 'GPT-5' }
   ];
 
   // Safely find the display name for the currently selected model

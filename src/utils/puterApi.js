@@ -37,7 +37,8 @@ export const CLAUDE_MODELS = {
   GEMMA_2_27B_IT: 'google/gemma-2-27b-it',
   GROK_BETA: 'grok-beta',
   GROK4: 'x-ai/grok-4',
-  O3PRO: 'openai/o3-pro'
+  O3PRO: 'openai/o3-pro',
+  GPT5: 'gpt-5'
 };
 
 /**
@@ -122,7 +123,8 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
       CLAUDE_MODELS.PIXTRAL_LARGE_LATEST,
       CLAUDE_MODELS.GEMMA_2_27B_IT,
       CLAUDE_MODELS.GROK_BETA,
-      CLAUDE_MODELS.GROK4
+      CLAUDE_MODELS.GROK4,
+      CLAUDE_MODELS.GPT5
     ];
     
     // Check if selected model is in the supported list
