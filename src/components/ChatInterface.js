@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useMemo } from 'react';
 import Message from './Message';
 import { isPuterAvailable } from '../utils/puterApi';
+import { useTranslation } from 'react-i18next';
 
 /* eslint-disable no-undef */
 // Указываем ESLint, что puter - это глобальная переменная, определенная извне
@@ -8,6 +9,7 @@ import { isPuterAvailable } from '../utils/puterApi';
 
 const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode }) => {
   const messagesEndRef = useRef(null);
+  const { t } = useTranslation();
 
   // Memoize the message components to prevent unnecessary re-rendering
   const messageElements = useMemo(() => {
@@ -33,13 +35,13 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     if (!puterLoaded && messages.length === 0 && !isPuterAvailable()) {
       return (
         <div className="api-error-message">
-          <p>Unable to connect to Claude 3.7 Sonnet via Puter.js API.</p>
-          <p>Please make sure that <code>https://js.puter.com/v2/</code> is accessible.</p>
+          <p>{t('chat.apiError1')}</p>
+          <p>{t('chat.apiError2', { url: 'https://js.puter.com/v2/' })}</p>
         </div>
       );
     }
     return null;
-  }, [puterLoaded, messages.length]);
+  }, [puterLoaded, messages.length, t]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -52,7 +54,7 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     <div className="messages-container">
       {messages.length === 0 && !streamingMessage && !apiErrorElement && (
         <div className="welcome-message">
-          <h2>Welcome to OpenVerse Chat AI</h2>
+          <h2>{t('app.welcome')}</h2>
         </div>
       )}
       {apiErrorElement}

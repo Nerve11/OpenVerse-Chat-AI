@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import ReactMarkdown from 'react-markdown';
 import CodeBlock from './CodeBlock';
+import { useTranslation } from 'react-i18next';
 
 const MessageContainer = styled.div`
   position: relative;
@@ -170,11 +171,12 @@ const Message = ({ message, streaming, onDiscussCode }) => {
   });
   
   const isUser = message.role === 'user';
+  const { t } = useTranslation();
   
   return (
     <MessageContainer>
       <MessageHeader>
-        <MessageSender>{isUser ? <span>You</span> : <span>Claude</span>}</MessageSender>
+        <MessageSender>{isUser ? <span>{t('chat.you')}</span> : <span>{t('chat.assistant')}</span>}</MessageSender>
         <MessageTime><span>{formattedTime}</span></MessageTime>
         {isUser ? <UserAvatar /> : <AssistantAvatar />}
       </MessageHeader>

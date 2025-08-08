@@ -63,6 +63,7 @@ export const testPuterApi = async () => {
         // Send a simple message to Claude without streaming
         const response = await window.puter.ai.chat(
           'Hello, Claude. Respond with a single word: "Working"', 
+          true,
           {
             model: CLAUDE_MODELS.CLAUDE_3_5_SONNET,
             stream: false
@@ -103,6 +104,7 @@ export const testClaude37Access = async () => {
   try {
     const response = await window.puter.ai.chat(
       'Respond with just one word: "Working"',
+      true,
       {
         model: CLAUDE_MODELS.CLAUDE_3_5_SONNET,
         stream: false

@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { FiCopy, FiCheck, FiPlay, FiMessageSquare } from 'react-icons/fi';
 import CodeRunnerModal from './CodeRunnerModal';
+import { useTranslation } from 'react-i18next';
 
 const CodeBlock = ({ code, language, onDiscussCode }) => {
   const [copied, setCopied] = useState(false);
   const [isRunModalOpen, setIsRunModalOpen] = useState(false);
+  const { t } = useTranslation();
 
   const handleCopy = useCallback(() => {
     if (!navigator.clipboard) {
@@ -39,18 +41,18 @@ const CodeBlock = ({ code, language, onDiscussCode }) => {
           <span className="code-language">{language || 'code'}</span>
           <div className="code-block-actions">
             {isJavaScript && (
-              <button className="code-action-button" onClick={handleRun} title="Run Code">
+              <button className="code-action-button" onClick={handleRun} title={t('code.runTitle')}>
                 <FiPlay size={14} />
-                <span>Run</span>
+                <span>{t('code.run')}</span>
               </button>
             )}
-            <button className="code-action-button" onClick={handleDiscuss} title="Discuss Code">
+            <button className="code-action-button" onClick={handleDiscuss} title={t('code.discussTitle')}>
               <FiMessageSquare size={14} />
-              <span>Discuss</span>
+              <span>{t('code.discuss')}</span>
             </button>
-            <button className="code-action-button" onClick={handleCopy} title="Copy Code">
+            <button className="code-action-button" onClick={handleCopy} title={t('code.copyTitle')}>
               {copied ? <FiCheck size={14} /> : <FiCopy size={14} />}
-              <span>{copied ? 'Copied' : 'Copy'}</span>
+              <span>{copied ? t('code.copied') : t('code.copy')}</span>
             </button>
           </div>
         </div>

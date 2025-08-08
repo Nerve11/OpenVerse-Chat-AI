@@ -1,14 +1,17 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const TemperatureSlider = ({ temperature, onTemperatureChange }) => {
+  const { t } = useTranslation();
   return (
     <div className="temperature-slider-container">
       <label htmlFor="temperature" className="temperature-label">
-        Temp: <span>{temperature.toFixed(1)}</span>
+        {t('controls.temp')}: <span>{temperature.toFixed(1)}</span>
       </label>
       <input
         type="range"
         id="temperature"
+        name="temperature"
         name="temperature"
         min="0"
         max="2"
@@ -16,7 +19,7 @@ const TemperatureSlider = ({ temperature, onTemperatureChange }) => {
         value={temperature}
         onChange={(e) => onTemperatureChange(parseFloat(e.target.value))}
         className="temperature-slider"
-        title={`Set temperature to ${temperature.toFixed(1)}`}
+        title={`${t('controls.temp')}: ${temperature.toFixed(1)}`}
       />
     </div>
   );

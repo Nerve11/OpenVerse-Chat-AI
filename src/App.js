@@ -7,6 +7,8 @@ import { isPuterAvailable, sendMessageToClaude, loadPuterScript, CLAUDE_MODELS }
 import { setDebugMode, isDebugMode, collectDiagnostics } from './utils/debugUtils';
 import { testPuterApi, testClaude37Access } from './utils/puterTest';
 import ErrorBoundary from './components/ErrorBoundary';
+import LanguageSwitcher from './components/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 // Function to generate a unique ID for messages
 const generateUniqueId = () => {
@@ -134,6 +136,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
   const [isSystemPromptVisible, setIsSystemPromptVisible] = useState(false);
   const [showPromptNotification, setShowPromptNotification] = useState(false);
   const [temperature, setTemperature] = useState(1.0);
+  const [attachments, setAttachments] = useState([]); // {name, content, size, ext}
   
   // Keep the ref in sync with the state
   useEffect(() => {
@@ -217,15 +220,17 @@ const App = ({ puterLoaded, puterTimeout }) => {
     setupPuter();
   }, [puterLoaded, puterTimeout]);
 
+  const { t } = useTranslation();
+
   // Get connection status text
   const connectionStatusText = useMemo(() => {
     switch(connectionStatus) {
-      case 'loading': return 'Соединение...';
-      case 'loaded': return 'Подключено';
-      case 'error': return 'Ошибка соединения';
-      default: return 'Неизвестный статус';
+      case 'loading': return t('app.connecting');
+      case 'loaded': return t('app.connected');
+      case 'error': return t('app.error');
+      default: return '';
     }
-  }, [connectionStatus]);
+  }, [connectionStatus, t]);
 
   // Get connection status class
   const connectionStatusClass = useMemo(() => {
@@ -248,8 +253,16 @@ const App = ({ puterLoaded, puterTimeout }) => {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isStreaming) return;
     
+    // Compose message with attachments if present
+    let composed = inputValue.trim();
+    if (attachments.length > 0) {
+      const header = `\n\n[Attached files (${attachments.length})]\n`;
+      const filesText = attachments.map(f => `\n---\nFile: ${f.name}\n\n\`\`\`\n${f.content}\n\`\`\``).join('');
+      composed += header + filesText + '\n\n';
+    }
+
     const userMessage = {
-      content: inputValue.trim(),
+      content: composed,
       role: 'user',
       id: generateUniqueId()
     };
@@ -335,6 +348,8 @@ const App = ({ puterLoaded, puterTimeout }) => {
     } finally {
       setIsStreaming(false);
       setStreamingMessage(null);
+      // clear attachments after send
+      setAttachments([]);
     }
   };
 
@@ -449,6 +464,13 @@ const App = ({ puterLoaded, puterTimeout }) => {
     setTemperature(newTemperature);
   };
 
+  const handleFilesAdded = (files) => {
+    // files: [{name, content, size, ext}]
+    setAttachments(prev => [...prev, ...files]);
+    // focus input to continue typing
+    inputRef.current?.focus();
+  };
+
   // Handle authentication changes
   const handleAuthChange = (isAuth, user) => {
     if (isAuth && user) {
@@ -469,7 +491,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
           <div className="header">
             <div className="logo-container">
               <div className="logo" />
-              <span className="claude-sonnet-chat"><span>OpenVerse Chat</span></span>
+              <span className="claude-sonnet-chat"><span>{t('app.title')}</span></span>
             </div>
             <div className={`connected ${connectionStatusClass}`}>
               <div className="group">
@@ -478,6 +500,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
               </div>
             </div>
             <AuthManager onAuthChange={handleAuthChange} />
+            <LanguageSwitcher />
             <div className="theme" />
           </div>
           
@@ -495,19 +518,21 @@ const App = ({ puterLoaded, puterTimeout }) => {
             <input
               ref={inputRef}
               type="text"
+              id="message-input"
+              name="message"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Message Claude Free Sonnet"
+              placeholder={t('chat.placeholder')}
               disabled={!puterLoaded || isStreaming}
               className="message-claude-sonnet"
               style={{
                 background: 'transparent',
                 border: 'none',
-                width: 'calc(100% - 100px)'
+                left: '16px',
+                right: '80px'
               }}
             />
-            <div className="path" />
             <div className="frame-3" onClick={handleSendMessage} />
           </div>
           
@@ -529,6 +554,8 @@ const App = ({ puterLoaded, puterTimeout }) => {
             onToggleTestMode={handleToggleTestMode}
             temperature={temperature}
             onTemperatureChange={handleTemperatureChange}
+            onFilesAdded={handleFilesAdded}
+            attachmentsCount={attachments.length}
           />
           
           {showPromptNotification && systemPrompt && (

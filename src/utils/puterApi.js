@@ -1,7 +1,3 @@
-/**
- * Utility functions for working with Puter.js API
- * Documentation: https://docs.puter.com/AI/chat/
- */
 import { isUsingFallback, fallbackSendMessage, setFallbackStatus } from './fallbackApi';
 import { debugLog, isDebugMode, collectDiagnostics } from './debugUtils';
 
@@ -64,7 +60,6 @@ export const isPuterAvailable = () => {
 };
 
 /**
- * Sends a message to Claude via Puter.js API
  * @param {string} message - The user's message
  * @param {function} onStreamUpdate - Callback for streaming updates
  * @param {string} model - The model to use (defaults to CLAUDE_3_5_SONNET)
@@ -77,19 +72,21 @@ export const isPuterAvailable = () => {
 export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUDE_MODELS.CLAUDE_3_5_SONNET, systemPrompt = '', testMode = false, temperature = 1.0, retryCount = 0) => {
   let fullResponse = '';
 
-  // --- IMPROVED TEST MODE ---
-  if (testMode) {
-    debugLog('Using improved Test Mode. Simulating API stream.');
-    const mockResponse = "This is a mock response in test mode. The quick brown fox jumps over the lazy dog. This simulated stream demonstrates the UI's ability to handle incoming text chunks without making a real API call. Temperature is set to " + temperature.toFixed(1) + ".";
+  // If Puter is unavailable, provide a local simulation so the UI can still be tested without credits
+  if (testMode && !isPuterAvailable()) {
+    debugLog('Test Mode: Puter.js not available. Using local simulated stream.');
+    const mockResponse =
+      'This is a mock response in test mode. The quick brown fox jumps over the lazy dog. ' +
+      'This simulated stream demonstrates the UI\'s ability to handle incoming text chunks without making a real API call. ' +
+      'Temperature is set to ' + temperature.toFixed(1) + '.';
     const chunks = mockResponse.split(' ');
-    
     return new Promise(resolve => {
       let i = 0;
       function sendChunk() {
         if (i < chunks.length) {
           onStreamUpdate(chunks[i] + ' ');
           i++;
-          setTimeout(sendChunk, 50); // Simulate delay
+          setTimeout(sendChunk, 50);
         } else {
           resolve(mockResponse);
         }
@@ -97,7 +94,6 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
       sendChunk();
     });
   }
-  // --- END OF TEST MODE ---
 
   try {
     // Validate that we have a proper model specified
@@ -196,24 +192,32 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
             debugLog(`Calling with messages array format: ${JSON.stringify(messages.map(m => ({ role: m.role, content_length: m.content.length })))}`);
           }
           
-          response = await window.puter.ai.chat(messages, {
-            model: modelToUse,
-            stream: true,
-            testMode: testMode,
-            temperature: temperature
-          });
+          // Per docs: puter.ai.chat(messages, testMode = false, options = {})
+          response = await window.puter.ai.chat(
+            messages,
+            Boolean(testMode),
+            {
+              model: modelToUse,
+              stream: true,
+              temperature: temperature
+            }
+          );
         } else {
           // If no system prompt, use the simpler format with just the message and options
           if (isDebugMode()) {
             debugLog(`Calling with simple format: message length ${message.length}`);
           }
           
-          response = await window.puter.ai.chat(message, {
-            model: modelToUse,
-            stream: true,
-            testMode: testMode,
-            temperature: temperature
-          });
+          // Per docs: puter.ai.chat(prompt, testMode = false, options = {})
+          response = await window.puter.ai.chat(
+            message,
+            Boolean(testMode),
+            {
+              model: modelToUse,
+              stream: true,
+              temperature: temperature
+            }
+          );
         }
         
         // Handle streaming response

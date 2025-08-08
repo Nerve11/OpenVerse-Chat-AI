@@ -146,6 +146,7 @@ const ModelSelector = ({ selectedModel, onSelectModel, isOpen, toggleDropdown })
         className="select-model" 
         onClick={toggleDropdown}
         ref={selectorRef}
+        title={selectedModelName}
       >
         <div className="group-5" />
         <span className="select-model-4">

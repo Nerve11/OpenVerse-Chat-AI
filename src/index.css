@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=SF+Pro+Display:wght@400;500;600;700&family=Vela+Sans+GX:wght@400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Vela+Sans:wght@500&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=TT+Interfaces:ital,wght@1,700&display=swap');
+/* External font imports removed to avoid failing stylesheet URLs. Inter is loaded via index.html */
 
 :root {
   --default-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -244,6 +242,19 @@ a {
   opacity: 0;
 }
 
+.lang-switcher {
+  position: absolute;
+  top: 22px;
+  right: 180px;
+  background: #2d2d30;
+  color: #f5f1ff;
+  border: 1px solid #3e3e42;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  z-index: 101;
+}
+
 .chat {
   position: relative;
   width: 1226px;
@@ -429,18 +440,7 @@ a {
   z-index: 14;
 }
 
-.path {
-  position: absolute;
-  width: 23px;
-  height: 26px;
-  top: 50%;
-  left: 30px;
-  background: url(https://static.codia.ai/image/2025-03-25/18c12be4-724d-48f5-86fe-1535c7d43e3e.svg)
-    no-repeat center;
-  background-size: cover;
-  transform: translate(0, -50%);
-  z-index: 16;
-}
+/* removed .path (paperclip icon) */
 
 .flex-row {
   display: flex;
@@ -453,6 +453,44 @@ a {
   height: 45px;
   margin: 16px auto 0;
   z-index: 9;
+}
+
+/* File uploader button */
+.add-files {
+  flex-shrink: 0;
+}
+
+.add-files-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 45px;
+  padding: 0 14px;
+  background: #1e1e1e;
+  color: #525252;
+  border-radius: 15px;
+  border: 1px solid #333335;
+  font-size: 16px;
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 60;
+  pointer-events: auto;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-files-button:hover {
+  background: #252527;
+  border-color: #444446;
+}
+
+.add-files.loading .add-files-button,
+.add-files-button.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .choose-model {
@@ -469,46 +507,62 @@ a {
 
 .select-model {
   position: relative;
-  width: 146.083px;
-  height: 25px;
-  margin: 11px 0 0 16px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 45px;
+  padding: 0 12px 0 30px; /* space for left icon */
+  margin: 0;
   z-index: 10;
+  box-sizing: border-box;
 }
 
 .select-model-4 {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  position: absolute;
-  height: 25px;
-  top: calc(50% - 12.5px);
-  left: 21.91%;
+  position: relative; /* override absolute */
+  top: auto;
+  left: auto;
+  display: block;
   color: #525252;
   font-family: Vela Sans, var(--default-font-family);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 24.588px;
+  line-height: 1;
   text-align: left;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0; /* allow flex child to shrink for ellipsis */
   z-index: 11;
+}
+
+.select-model-4 > span {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .group-5 {
   position: absolute;
-  width: 12.32%;
-  height: 72%;
-  top: 4%;
+  width: 18px;
+  height: 18px;
+  top: 50%;
   left: 0;
   background: url(https://static.codia.ai/image/2025-03-25/7c671aa6-8796-4f8b-af01-acbc30003699.svg)
     no-repeat center;
   background-size: 100% 100%;
   z-index: 12;
+  transform: translateY(-50%);
+  margin-left: 8px;
 }
 
 .clear-chat {
   flex-shrink: 0;
   position: relative;
-  width: 156px;
+  min-width: 156px;
+  max-width: 220px;
   height: 45px;
   background: #1e1e1e;
   z-index: 1;
@@ -519,41 +573,40 @@ a {
 
 .group-6 {
   position: relative;
-  width: 120px;
-  height: 25px;
-  margin: 11px 0 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 45px;
+  padding: 0 14px 0 14px;
   z-index: 2;
 }
 
 .clear-chat-7 {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  position: absolute;
-  height: 25px;
-  top: calc(50% - 12.5px);
-  left: 27.5%;
+  display: inline-block;
   color: #525252;
   font-family: Vela Sans, var(--default-font-family);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
-  line-height: 24.588px;
+  line-height: 1;
   text-align: left;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 4;
+  order: 1; /* text after icon */
 }
 
 .vector-8 {
-  position: absolute;
-  width: 15.83%;
+  position: relative;
+  width: 22px;
   height: 22px;
-  top: 50%;
-  left: 0;
   background: url(https://static.codia.ai/image/2025-03-25/f952bde9-0e67-4566-9c19-c6b250fef704.svg)
     no-repeat center;
   background-size: cover;
-  transform: translate(0, -52.27%);
+  transform: none;
   z-index: 3;
+  order: 0; /* icon before text */
 }
 
 .search {
@@ -1114,6 +1167,8 @@ a {
   cursor: pointer;
   gap: 8px;
   transition: all 0.2s ease;
+  max-width: 260px;
+  overflow: hidden;
 }
 
 .system-prompt:hover {
@@ -1131,6 +1186,9 @@ a {
   font-weight: 400;
   color: #aaabae;
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .system-prompt-icon {

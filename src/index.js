@@ -2,6 +2,7 @@ import React, { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import ErrorBoundary from './components/ErrorBoundary';
+import './i18n';
 
 // Используем динамический импорт для App, сначала показываем наш собственный прелоадер
 const App = lazy(() => {
@@ -225,7 +226,7 @@ checkAndRender();
 
 // Регистрация Service Worker в фоновом режиме,
 // чтобы не блокировать основной поток
-if ('serviceWorker' in navigator) {
+if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Откладываем регистрацию, чтобы не конкурировать с основными задачами
     setTimeout(() => {

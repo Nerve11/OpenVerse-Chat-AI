@@ -15,8 +15,7 @@
     
     <!-- Предзагрузка критических ресурсов -->
     <link rel="preload" href="%PUBLIC_URL%/logo192.png" as="image" fetchpriority="high" />
-    <link rel="preload" href="%PUBLIC_URL%/static/js/main.chunk.js" as="script" fetchpriority="high" />
-    <link rel="preload" href="%PUBLIC_URL%/static/js/bundle.js" as="script" fetchpriority="high" />
+    
     
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
@@ -24,13 +23,13 @@
     <!-- Оптимизация загрузки шрифтов -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" media="print" onload="this.media='all'" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
     
     <!-- Ранняя инициализация Puter.js с высоким приоритетом -->
     <link rel="preconnect" href="https://js.puter.com" crossorigin />
-    <link rel="preload" href="https://js.puter.com/v2/" as="script" crossorigin fetchpriority="high" />
-    <script src="https://js.puter.com/v2/" async fetchpriority="high"></script>
+    <script src="https://js.puter.com/v2/" async></script>
     
     <!-- DNS prefetch для улучшения производительности -->
     <link rel="dns-prefetch" href="https://js.puter.com" />
@@ -273,57 +272,7 @@
       });
     </script>
     
-    <!-- Ранняя предзагрузка компонентов React -->
-    <script>
-      // Техника для ускорения инициализации React
-      (function() {
-        // Предзагрузка React и ReactDOM
-        const preloadReact = () => {
-          // Предзагружаем основные скрипты React с высоким приоритетом
-          const modulePreloads = [
-            '/static/js/bundle.js',
-            '/static/js/main.chunk.js',
-            '/static/js/vendors~main.chunk.js'
-          ];
-          
-          modulePreloads.forEach(src => {
-            const link = document.createElement('link');
-            link.rel = 'modulepreload';
-            link.href = src;
-            link.as = 'script';
-            link.crossOrigin = 'anonymous';
-            link.fetchPriority = 'high';
-            document.head.appendChild(link);
-            
-            // Также создаем и скрипт для ранней загрузки
-            if (Math.random() > 0.5) { // Используем вероятностный подход, чтобы избежать блокировки
-              const script = document.createElement('script');
-              script.src = src;
-              script.async = true;
-              script.defer = true;
-              document.head.appendChild(script);
-            }
-          });
-        };
-        
-        // Запускаем предзагрузку с небольшой задержкой, чтобы не мешать основному рендерингу
-        setTimeout(preloadReact, 50);
-      })();
-      
-      // Техника для ускорения времени до TTI
-      document.addEventListener('DOMContentLoaded', function() {
-        // Минимизируем Main Thread загруженность
-        setTimeout(function() {
-          // Предварительно создаем элементы React, которые будут использоваться в приложении
-          [
-            'div', 'span', 'p', 'h1', 'h2', 'h3', 'button', 'input', 'a', 
-            'ul', 'li', 'textarea', 'img', 'svg', 'path', 'header', 'footer'
-          ].forEach(function(tag) {
-            document.createElement(tag);
-          });
-        }, 100);
-      });
-    </script>
+    
     
     <script>
       // LCP Debugging Script
