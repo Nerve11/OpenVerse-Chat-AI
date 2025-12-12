@@ -13,20 +13,32 @@ const Sidebar = ({
 
   // Форматирование названия модели
   const formatModelName = (model) => {
-    if (!model) return '';
-    // Убираем anthropic. и делаем читабельным
-    const name = model.replace('anthropic.', '').replace(/-/g, ' ');
-    return name.split(' ').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+    // Проверяем что model существует и является строкой
+    if (!model || typeof model !== 'string') {
+      console.warn('Invalid model format:', model);
+      return 'Unknown Model';
+    }
+    
+    try {
+      // Убираем anthropic. и делаем читабельным
+      const name = model.replace('anthropic.', '').replace(/-/g, ' ');
+      return name.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+    } catch (error) {
+      console.error('Error formatting model name:', error, model);
+      return String(model);
+    }
   };
 
   // Получаем краткое описание модели
   const getModelDescription = (model) => {
-    if (model.includes('3-5-sonnet')) return 'Balanced - Best for most tasks';
-    if (model.includes('3-7-sonnet')) return 'Advanced - Latest model';
-    if (model.includes('3-opus')) return 'Powerful - Complex reasoning';
-    if (model.includes('3-haiku')) return 'Fast - Quick responses';
+    if (!model || typeof model !== 'string') return 'AI Model';
+    
+    if (model.includes('3-5-sonnet') || model.includes('3.5-sonnet')) return 'Balanced - Best for most tasks';
+    if (model.includes('3-7-sonnet') || model.includes('3.7-sonnet')) return 'Advanced - Latest model';
+    if (model.includes('3-opus') || model.includes('opus')) return 'Powerful - Complex reasoning';
+    if (model.includes('3-haiku') || model.includes('haiku')) return 'Fast - Quick responses';
     return 'AI Model';
   };
 
@@ -49,23 +61,29 @@ const Sidebar = ({
           </div>
           <div className="model-list">
             {availableModels && availableModels.length > 0 ? (
-              availableModels.map((model) => (
-                <div
-                  key={model}
-                  className={`model-item ${selectedModel === model ? 'selected' : ''}`}
-                  onClick={() => onSelectModel(model)}
-                >
-                  <div className="model-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                    </svg>
+              availableModels.map((model, index) => {
+                // Создаем уникальный ключ даже если model не строка
+                const modelKey = typeof model === 'string' ? model : `model-${index}`;
+                const isSelected = selectedModel === model;
+                
+                return (
+                  <div
+                    key={modelKey}
+                    className={`model-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => onSelectModel(model)}
+                  >
+                    <div className="model-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                      </svg>
+                    </div>
+                    <div className="model-info">
+                      <div className="model-name">{formatModelName(model)}</div>
+                      <div className="model-description">{getModelDescription(model)}</div>
+                    </div>
                   </div>
-                  <div className="model-info">
-                    <div className="model-name">{formatModelName(model)}</div>
-                    <div className="model-description">{getModelDescription(model)}</div>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="model-item">
                 <div className="model-icon">
