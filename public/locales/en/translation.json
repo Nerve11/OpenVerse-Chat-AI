@@ -1,0 +1,34 @@
+{
+  "app": {
+    "title": "OpenVerse Chat AI",
+    "welcome": "Welcome to OpenVerse Chat AI",
+    "connecting": "Connecting...",
+    "connected": "Connected",
+    "error": "Connection Error",
+    "chat": "Chat"
+  },
+  "sidebar": {
+    "models": "AI Models",
+    "settings": "Settings"
+  },
+  "chat": {
+    "placeholder": "Type your message...",
+    "you": "You",
+    "assistant": "AI Assistant",
+    "apiError1": "Puter.js API is not available.",
+    "apiError2": "Please ensure the Puter.js script is loaded from {{url}}"
+  },
+  "controls": {
+    "systemPrompt": "System Prompt",
+    "editPrompt": "Edit Prompt",
+    "clearChat": "Clear Chat",
+    "addFiles": "Add Files",
+    "temperature": "Temperature",
+    "search": "Search"
+  },
+  "message": {
+    "copy": "Copy",
+    "copied": "Copied!",
+    "discuss": "Discuss Code"
+  }
+}
