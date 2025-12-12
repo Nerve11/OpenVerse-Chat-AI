@@ -13,33 +13,70 @@ const Sidebar = ({
 
   // Форматирование названия модели
   const formatModelName = (model) => {
-    // Проверяем что model существует и является строкой
-    if (!model || typeof model !== 'string') {
-      console.warn('Invalid model format:', model);
+    // Проверяем что model существует
+    if (!model) {
       return 'Unknown Model';
     }
     
-    try {
-      // Убираем anthropic. и делаем читабельным
-      const name = model.replace('anthropic.', '').replace(/-/g, ' ');
-      return name.split(' ').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ');
-    } catch (error) {
-      console.error('Error formatting model name:', error, model);
-      return String(model);
+    // Если это объект с полем name, используем его
+    if (typeof model === 'object' && model.name) {
+      return model.name;
     }
+    
+    // Если это строка
+    if (typeof model === 'string') {
+      try {
+        const name = model.replace('anthropic.', '').replace(/-/g, ' ');
+        return name.split(' ').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+      } catch (error) {
+        console.error('Error formatting model name:', error);
+        return String(model);
+      }
+    }
+    
+    return 'Unknown Model';
   };
 
   // Получаем краткое описание модели
   const getModelDescription = (model) => {
-    if (!model || typeof model !== 'string') return 'AI Model';
+    if (!model) return 'AI Model';
     
-    if (model.includes('3-5-sonnet') || model.includes('3.5-sonnet')) return 'Balanced - Best for most tasks';
-    if (model.includes('3-7-sonnet') || model.includes('3.7-sonnet')) return 'Advanced - Latest model';
-    if (model.includes('3-opus') || model.includes('opus')) return 'Powerful - Complex reasoning';
-    if (model.includes('3-haiku') || model.includes('haiku')) return 'Fast - Quick responses';
+    // Если у модели есть description из API
+    if (typeof model === 'object' && model.description) {
+      return model.description;
+    }
+    
+    // Определяем по ID/name
+    const modelStr = typeof model === 'object' ? (model.id || model.name || '') : String(model);
+    const lowerModel = modelStr.toLowerCase();
+    
+    if (lowerModel.includes('3-5-sonnet') || lowerModel.includes('3.5-sonnet')) return 'Balanced - Best for most tasks';
+    if (lowerModel.includes('3-7-sonnet') || lowerModel.includes('3.7-sonnet')) return 'Advanced - Latest model';
+    if (lowerModel.includes('opus')) return 'Powerful - Complex reasoning';
+    if (lowerModel.includes('haiku')) return 'Fast - Quick responses';
+    if (lowerModel.includes('gpt-4')) return 'OpenAI GPT-4';
+    if (lowerModel.includes('gpt-5')) return 'OpenAI GPT-5';
+    if (lowerModel.includes('o1')) return 'Reasoning model';
+    if (lowerModel.includes('gemini')) return 'Google Gemini';
+    if (lowerModel.includes('llama')) return 'Meta Llama';
+    if (lowerModel.includes('deepseek')) return 'DeepSeek AI';
+    if (lowerModel.includes('grok')) return 'xAI Grok';
+    
+    // Если есть provider, показываем его
+    if (typeof model === 'object' && model.provider) {
+      return `${model.provider} Model`;
+    }
+    
     return 'AI Model';
+  };
+
+  // Получаем ID модели для сравнения
+  const getModelId = (model) => {
+    if (!model) return null;
+    if (typeof model === 'object') return model.id || model.model_id || model.name;
+    return model;
   };
 
   return (
@@ -62,15 +99,15 @@ const Sidebar = ({
           <div className="model-list">
             {availableModels && availableModels.length > 0 ? (
               availableModels.map((model, index) => {
-                // Создаем уникальный ключ даже если model не строка
-                const modelKey = typeof model === 'string' ? model : `model-${index}`;
-                const isSelected = selectedModel === model;
+                const modelId = getModelId(model);
+                const modelKey = modelId || `model-${index}`;
+                const isSelected = selectedModel === modelId;
                 
                 return (
                   <div
                     key={modelKey}
                     className={`model-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => onSelectModel(model)}
+                    onClick={() => onSelectModel(modelId)}
                   >
                     <div className="model-icon">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
