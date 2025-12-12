@@ -3,7 +3,7 @@ import { ThemeProvider as CustomThemeProvider } from './contexts/ThemeContext';
 import ChatInterface from './components/ChatInterface';
 import Controls from './components/Controls';
 import AuthManager from './components/AuthManager';
-import { isPuterAvailable, sendMessageToClaude, loadPuterScript, CLAUDE_MODELS } from './utils/puterApi';
+import { isPuterAvailable, sendMessageToClaude, loadPuterScript, CLAUDE_MODELS, getCachedModels } from './utils/puterApi';
 import { setDebugMode, isDebugMode, collectDiagnostics } from './utils/debugUtils';
 import { testPuterApi, testClaude37Access } from './utils/puterTest';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -137,11 +137,35 @@ const App = ({ puterLoaded, puterTimeout }) => {
   const [showPromptNotification, setShowPromptNotification] = useState(false);
   const [temperature, setTemperature] = useState(1.0);
   const [attachments, setAttachments] = useState([]); // {name, content, size, ext}
+  const [availableModels, setAvailableModels] = useState([]); // Список доступных моделей
   
   // Keep the ref in sync with the state
   useEffect(() => {
     currentStreamingMessageRef.current = streamingMessage;
   }, [streamingMessage]);
+  
+  // Загрузка доступных моделей при инициализации
+  useEffect(() => {
+    const loadModels = async () => {
+      if (isPuterAvailable()) {
+        try {
+          console.log('Загрузка списка доступных моделей...');
+          const models = await getCachedModels();
+          console.log(`Загружено ${models.length} моделей`);
+          setAvailableModels(models);
+        } catch (error) {
+          console.error('Ошибка при загрузке моделей:', error);
+        }
+      }
+    };
+    
+    loadModels();
+    
+    // Обновляем список моделей каждые 5 минут
+    const interval = setInterval(loadModels, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [puterLoaded]);
   
   // Close model dropdown when clicking outside
   useEffect(() => {
@@ -556,6 +580,7 @@ const App = ({ puterLoaded, puterTimeout }) => {
             onTemperatureChange={handleTemperatureChange}
             onFilesAdded={handleFilesAdded}
             attachmentsCount={attachments.length}
+            availableModels={availableModels}
           />
           
           {showPromptNotification && systemPrompt && (
