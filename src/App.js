@@ -11,12 +11,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 
-// Function to generate a unique ID for messages
 const generateUniqueId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 };
 
-// Function to handle AI API calls
 const sendToAI = async (message, setStreamingMessage, selectedModel, systemPrompt, testMode, temperature) => {
   try {
     if (!isPuterAvailable()) {
@@ -360,9 +358,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
           
           <div className="main-content">
             <div className="header">
-              <div className="header-title">
-                {t('app.chat') || 'Chat'}
-              </div>
               <div className="header-controls">
                 <div className={`connected ${connectionStatusClass}`}>
                   <div className="group">
