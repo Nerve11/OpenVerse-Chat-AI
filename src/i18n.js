@@ -5,12 +5,16 @@ const resources = {
   en: {
     translation: {
       app: {
-        title: 'OpenVerse Chat',
+        title: 'OpenVerse Chat AI',
         loading: 'Loading OpenVerse-Chat-AI...',
         connected: 'Connected',
         connecting: 'Connecting...',
         error: 'Connection error',
         welcome: 'Welcome to OpenVerse Chat AI',
+      },
+      sidebar: {
+        models: 'Model List',
+        settings: 'Settings',
       },
       systemPrompt: {
         editor: {
@@ -49,28 +53,36 @@ const resources = {
         }
       },
       controls: {
+        clearChat: 'Clear Chat',
         clear: 'Clear chat',
         search: 'Search',
         debug: 'Debug',
-        systemPrompt: 'System prompt',
+        systemPrompt: 'System Prompt',
+        editPrompt: 'Edit Prompt',
         systemPromptActive: 'System prompt active',
         systemPromptTitle: 'Configure system prompt',
         systemPromptClear: 'Clear system prompt',
-        addFiles: 'Add files',
+        addFiles: 'Add Files',
         addFilesTitle: 'Add files or ZIP',
         processing: 'Processing…',
         testMode: 'Test Mode',
         testOn: 'ON',
         testOff: 'OFF',
         temp: 'Temp',
+        temperature: 'Temperature',
         selectModel: 'Select model',
       },
       chat: {
-        apiError1: 'Unable to connect to Claude 3.7 Sonnet via Puter.js API.',
-        apiError2: 'Please make sure that {{url}} is accessible.',
-        placeholder: 'Message Claude Free Sonnet',
+        apiError1: 'Puter.js API is not available.',
+        apiError2: 'Please ensure the Puter.js script is loaded from {{url}}',
+        placeholder: 'Type your message...',
         you: 'You',
-        assistant: 'Claude',
+        assistant: 'AI Assistant',
+      },
+      message: {
+        copy: 'Copy',
+        copied: 'Copied!',
+        discuss: 'Discuss Code',
       },
       code: {
         run: 'Run',
@@ -91,18 +103,24 @@ const resources = {
   ru: {
     translation: {
       app: {
-        title: 'OpenVerse Chat',
+        title: 'OpenVerse Chat AI',
         loading: 'Загрузка OpenVerse-Chat-AI...',
         connected: 'Подключено',
         connecting: 'Соединение...',
         error: 'Ошибка соединения',
         welcome: 'Добро пожаловать в OpenVerse Chat AI',
       },
+      sidebar: {
+        models: 'Список моделей',
+        settings: 'Настройки',
+      },
       controls: {
+        clearChat: 'Очистить чат',
         clear: 'Очистить чат',
         search: 'Поиск',
         debug: 'Отладка',
         systemPrompt: 'Системный промпт',
+        editPrompt: 'Редактировать промпт',
         systemPromptActive: 'Системный промпт активен',
         systemPromptTitle: 'Настроить системный промпт',
         systemPromptClear: 'Очистить системный промпт',
@@ -113,6 +131,7 @@ const resources = {
         testOn: 'ВКЛ',
         testOff: 'ВЫКЛ',
         temp: 'Темп',
+        temperature: 'Температура',
         selectModel: 'Выбрать модель',
       },
       systemPrompt: {
@@ -152,11 +171,16 @@ const resources = {
         }
       },
       chat: {
-        apiError1: 'Не удаётся подключиться к Claude 3.7 Sonnet через Puter.js API.',
-        apiError2: 'Проверьте доступ к {{url}}.',
-        placeholder: 'Сообщение Claude Free Sonnet',
+        apiError1: 'Puter.js API недоступен.',
+        apiError2: 'Убедитесь, что Puter.js загружен с {{url}}',
+        placeholder: 'Введите сообщение...',
         you: 'Вы',
-        assistant: 'Claude',
+        assistant: 'AI Ассистент',
+      },
+      message: {
+        copy: 'Копировать',
+        copied: 'Скопировано!',
+        discuss: 'Обсудить код',
       },
       code: {
         run: 'Запустить',
@@ -177,18 +201,24 @@ const resources = {
   zh: {
     translation: {
       app: {
-        title: 'OpenVerse Chat',
+        title: 'OpenVerse Chat AI',
         loading: '正在加载 OpenVerse-Chat-AI...',
         connected: '已连接',
         connecting: '连接中...',
         error: '连接错误',
         welcome: '欢迎使用 OpenVerse Chat AI',
       },
+      sidebar: {
+        models: '模型列表',
+        settings: '设置',
+      },
       controls: {
+        clearChat: '清空聊天',
         clear: '清空聊天',
         search: '搜索',
         debug: '调试',
         systemPrompt: '系统提示',
+        editPrompt: '编辑提示',
         systemPromptActive: '系统提示已启用',
         systemPromptTitle: '配置系统提示',
         systemPromptClear: '清除系统提示',
@@ -199,6 +229,7 @@ const resources = {
         testOn: '开',
         testOff: '关',
         temp: '温度',
+        temperature: '温度',
         selectModel: '选择模型',
       },
       systemPrompt: {
@@ -238,11 +269,16 @@ const resources = {
         }
       },
       chat: {
-        apiError1: '无法通过 Puter.js API 连接到 Claude 3.7 Sonnet。',
+        apiError1: '无法通过 Puter.js API 连接。',
         apiError2: '请确认 {{url}} 可访问。',
-        placeholder: '给 Claude Free Sonnet 发送消息',
+        placeholder: '输入消息...',
         you: '你',
-        assistant: 'Claude',
+        assistant: 'AI 助手',
+      },
+      message: {
+        copy: '复制',
+        copied: '已复制！',
+        discuss: '讨论代码',
       },
       code: {
         run: '运行',
@@ -274,5 +310,3 @@ i18n
   });
 
 export default i18n;
-
-
