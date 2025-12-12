@@ -315,20 +315,39 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
         // Handle streaming response
         let isStreamComplete = false;
         let streamTimeout;
+        let lastDataTime = Date.now();
         
         try {
-          // Set a timeout to detect stalled streams
-          const STREAM_TIMEOUT = 60000; // 60 seconds timeout (increased from 30s)
+          // Увеличен таймаут до 120 секунд и добавлено отслеживание активности
+          const STREAM_TIMEOUT = 120000; // 120 секунд
+          const INACTIVITY_TIMEOUT = 30000; // 30 секунд без данных
           
-          streamTimeout = setTimeout(() => {
-            if (!isStreamComplete) {
-              debugLog('Stream timeout detected - response may be incomplete');
-              onStreamUpdate("\n\n[Ответ может быть неполным из-за таймаута]");
+          // Функция для сброса таймаута при получении данных
+          const resetTimeout = () => {
+            lastDataTime = Date.now();
+            if (streamTimeout) {
+              clearTimeout(streamTimeout);
             }
-          }, STREAM_TIMEOUT);
+            
+            streamTimeout = setTimeout(() => {
+              if (!isStreamComplete) {
+                const timeSinceLastData = Date.now() - lastDataTime;
+                if (timeSinceLastData > INACTIVITY_TIMEOUT) {
+                  debugLog('Stream inactivity timeout - no data received for 30 seconds');
+                  console.warn('Stream appears stalled - no new data received');
+                }
+              }
+            }, STREAM_TIMEOUT);
+          };
+          
+          // Установка начального таймаута
+          resetTimeout();
           
           // Process the streaming response with better error handling
           for await (const part of response) {
+            // Сброс таймаута при каждом получении данных
+            resetTimeout();
+            
             if (part && part.text) {
               if (isDebugMode() && part.text.length < 50) {
                 debugLog(`Stream update: ${part.text}`);
@@ -342,18 +361,19 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
           isStreamComplete = true;
           clearTimeout(streamTimeout);
           
-          // If the response seems unusually short, add a note
-          if (fullResponse.length < 20 && !fullResponse.endsWith('.') && !fullResponse.endsWith('?') && !fullResponse.endsWith('!')) {
-            debugLog('Response seems suspiciously short or incomplete');
-            onStreamUpdate("\n\n[Ответ может быть неполным]");
-          }
+          // Убрана проверка на минимальную длину ответа
+          // Ответ считается полным, если поток завершился без ошибок
+          debugLog(`Stream completed successfully. Response length: ${fullResponse.length} characters`);
+          
         } catch (streamError) {
           // Handle errors during streaming
           console.error("Error during streaming:", streamError);
           clearTimeout(streamTimeout);
           
           // Notify user about the interrupted response
-          onStreamUpdate("\n\n[Ответ был прерван из-за ошибки при получении данных]");
+          const errorMessage = "\n\n[Ответ был прерван из-за ошибки при получении данных]";
+          onStreamUpdate(errorMessage);
+          fullResponse += errorMessage;
           
           // Check if this is a recoverable error (like a temporary network hiccup)
           const isRecoverable = streamError.message && (
@@ -371,7 +391,7 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             // Retry with incremented retry count
-            return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, retryCount + 1);
+            return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, testMode, temperature, retryCount + 1);
           }
           
           // Rethrow error if it's severe
@@ -388,25 +408,25 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
         console.error(`Error with model ${modelToUse}:`, modelError);
         
         // Provide more specific error details to help diagnose the issue
-        let errorMessage = "⚠️ Error with selected model. ";
+        let errorMessage = "⚠️ Ошибка с выбранной моделью. ";
         
         if (modelError.message) {
           if (modelError.message.includes("not supported")) {
-            errorMessage += `The model "${modelToUse}" is not currently supported. `;
+            errorMessage += `Модель "${modelToUse}" в данный момент не поддерживается. `;
           } else if (modelError.message.includes("unavailable")) {
-            errorMessage += `The model "${modelToUse}" is temporarily unavailable. `;
+            errorMessage += `Модель "${modelToUse}" временно недоступна. `;
           } else if (modelError.message.includes("quota") || modelError.message.includes("limit")) {
-            errorMessage += `Usage quota exceeded for model "${modelToUse}". `;
+            errorMessage += `Превышена квота использования для модели "${modelToUse}". `;
           } else if (modelError.message.includes("permission")) {
-            errorMessage += `You don't have permission to use model "${modelToUse}". `;
+            errorMessage += `У вас нет разрешения на использование модели "${modelToUse}". `;
           } else if (modelError.message.includes("format")) {
-            errorMessage += `Invalid request format for model "${modelToUse}". `;
+            errorMessage += `Неверный формат запроса для модели "${modelToUse}". `;
           } else {
             // Include actual error message for transparency
-            errorMessage += `Error: ${modelError.message}`;
+            errorMessage += `Ошибка: ${modelError.message}`;
           }
         } else {
-          errorMessage += `There was an issue using the selected model "${modelToUse}". `;
+          errorMessage += `Возникла проблема при использовании выбранной модели "${modelToUse}". `;
         }
         
         onStreamUpdate(errorMessage);
@@ -435,7 +455,7 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
       // If this is not our last retry, try again
       if (retryCount < MAX_RETRIES - 1) {
         console.log(`Retrying Claude API call (${retryCount + 1}/${MAX_RETRIES - 1})...`);
-        return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, retryCount + 1);
+        return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, testMode, temperature, retryCount + 1);
       }
       
       // Otherwise, use fallback
@@ -516,4 +536,4 @@ export const loadPuterScript = () => {
     
     document.head.appendChild(script);
   });
-}; 
+};
