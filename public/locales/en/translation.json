@@ -4,11 +4,10 @@
     "welcome": "Welcome to OpenVerse Chat AI",
     "connecting": "Connecting...",
     "connected": "Connected",
-    "error": "Connection Error",
-    "chat": "Chat"
+    "error": "Connection Error"
   },
   "sidebar": {
-    "models": "AI Models",
+    "models": "Model List",
     "settings": "Settings"
   },
   "chat": {
