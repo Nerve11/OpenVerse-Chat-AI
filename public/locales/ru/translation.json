@@ -1,0 +1,34 @@
+{
+  "app": {
+    "title": "OpenVerse Chat AI",
+    "welcome": "Добро пожаловать в OpenVerse Chat AI",
+    "connecting": "Подключение...",
+    "connected": "Подключено",
+    "error": "Ошибка подключения",
+    "chat": "Чат"
+  },
+  "sidebar": {
+    "models": "Модели AI",
+    "settings": "Настройки"
+  },
+  "chat": {
+    "placeholder": "Введите сообщение...",
+    "you": "Вы",
+    "assistant": "AI Ассистент",
+    "apiError1": "Puter.js API недоступен.",
+    "apiError2": "Убедитесь, что Puter.js загружен с {{url}}"
+  },
+  "controls": {
+    "systemPrompt": "Системный промпт",
+    "editPrompt": Редактировать промпт",
+    "clearChat": "Очистить чат",
+    "addFiles": "Добавить файлы",
+    "temperature": "Температура",
+    "search": "Поиск"
+  },
+  "message": {
+    "copy": "Копировать",
+    "copied": "Скопировано!",
+    "discuss": "Обсудить код"
+  }
+}
