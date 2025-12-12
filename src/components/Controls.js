@@ -27,6 +27,7 @@ const Controls = ({
   onTemperatureChange,
   onFilesAdded,
   attachmentsCount,
+  availableModels,
 }) => {
   const { t } = useTranslation();
   return (
@@ -52,6 +53,7 @@ const Controls = ({
             onSelectModel={onSelectModel}
             isOpen={isModelDropdownOpen}
             toggleDropdown={onToggleModelDropdown}
+            availableModels={availableModels}
           />
         </ErrorBoundary>
       </div>
