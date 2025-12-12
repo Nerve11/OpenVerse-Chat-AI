@@ -12,7 +12,6 @@ const TemperatureSlider = ({ temperature, onTemperatureChange }) => {
         type="range"
         id="temperature"
         name="temperature"
-        name="temperature"
         min="0"
         max="2"
         step="0.1"
