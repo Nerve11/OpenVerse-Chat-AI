@@ -1,10 +1,8 @@
 import React from 'react';
 import ErrorBoundary from './ErrorBoundary';
-import TestModeToggle from './TestModeToggle';
 import TemperatureSlider from './TemperatureSlider';
 import FileUploader from './FileUploader';
 import SystemPrompt from './SystemPrompt';
-import { useTranslation } from 'react-i18next';
 
 const Controls = ({
   systemPrompt,
@@ -13,15 +11,12 @@ const Controls = ({
   onToggleSystemPromptVisibility,
   onClearSystemPrompt,
   debugActive,
-  onToggleDebug,
   testMode,
-  onToggleTestMode,
   temperature,
   onTemperatureChange,
   onFilesAdded,
   attachmentsCount,
 }) => {
-  const { t } = useTranslation();
   return (
     <>
       {/* SystemPrompt overlay - показывается при isSystemPromptVisible */}
