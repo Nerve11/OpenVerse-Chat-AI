@@ -4,7 +4,7 @@ import { debugLog, isDebugMode, collectDiagnostics } from './debugUtils';
 // Number of retries for API calls
 const MAX_RETRIES = 3;
 
-// Claude model names
+// Claude model names (Fallback list - used if dynamic loading fails)
 export const CLAUDE_MODELS = {
   CLAUDE_3_7_SONNET: 'claude-3-7-sonnet',
   CLAUDE_3_5_SONNET: 'claude-3-5-sonnet',
@@ -35,6 +35,105 @@ export const CLAUDE_MODELS = {
   GROK4: 'x-ai/grok-4',
   O3PRO: 'openai/o3-pro',
   GPT5: 'gpt-5'
+};
+
+/**
+ * Получает список доступных моделей ИИ через Puter API
+ * @returns {Promise<Array>} Массив объектов с информацией о моделях
+ */
+export const getAvailableModels = async () => {
+  try {
+    if (!isPuterAvailable()) {
+      debugLog('Puter.js недоступен для загрузки списка моделей');
+      // Возвращаем fallback список
+      return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
+        id: value,
+        name: key.replace(/_/g, ' '),
+        provider: 'Unknown'
+      }));
+    }
+
+    debugLog('Загрузка списка доступных моделей через Puter API');
+    
+    // Используем Puter API для получения списка моделей
+    // Согласно документации Puter.com, используем puter.ai API
+    const models = await window.puter.ai.models();
+    
+    debugLog(`Загружено ${models.length} моделей из Puter API`);
+    
+    // Форматируем данные для использования в приложении
+    return models.map(model => ({
+      id: model.id || model.name,
+      name: model.name || model.id,
+      provider: model.provider || 'Unknown',
+      description: model.description || '',
+      capabilities: model.capabilities || []
+    }));
+  } catch (error) {
+    console.error('Ошибка при загрузке списка моделей:', error);
+    debugLog(`Ошибка загрузки моделей: ${error.message}`);
+    
+    // В случае ошибки возвращаем fallback список
+    return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
+      id: value,
+      name: key.replace(/_/g, ' '),
+      provider: 'Fallback'
+    }));
+  }
+};
+
+/**
+ * Получает список провайдеров моделей ИИ
+ * @returns {Promise<Array>} Массив провайдеров моделей
+ */
+export const listModelProviders = async () => {
+  try {
+    if (!isPuterAvailable()) {
+      debugLog('Puter.js недоступен для загрузки провайдеров');
+      return [];
+    }
+
+    debugLog('Загрузка списка провайдеров моделей');
+    
+    // Используем Puter API для получения провайдеров
+    const providers = await window.puter.ai.providers();
+    
+    debugLog(`Загружено ${providers.length} провайдеров`);
+    return providers;
+  } catch (error) {
+    console.error('Ошибка при загрузке провайдеров:', error);
+    debugLog(`Ошибка загрузки провайдеров: ${error.message}`);
+    return [];
+  }
+};
+
+/**
+ * Кеширование списка моделей для повышения производительности
+ */
+let cachedModels = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+
+/**
+ * Получает список моделей с кешированием
+ * @param {boolean} forceRefresh - Принудительно обновить кеш
+ * @returns {Promise<Array>} Массив моделей
+ */
+export const getCachedModels = async (forceRefresh = false) => {
+  const now = Date.now();
+  
+  // Проверяем актуальность кеша
+  if (!forceRefresh && cachedModels && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
+    debugLog('Использование кешированного списка моделей');
+    return cachedModels;
+  }
+  
+  // Загружаем свежий список
+  debugLog('Обновление списка моделей');
+  cachedModels = await getAvailableModels();
+  cacheTimestamp = now;
+  
+  return cachedModels;
 };
 
 /**
@@ -98,39 +197,6 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
   try {
     // Validate that we have a proper model specified
     const modelToUse = model || CLAUDE_MODELS.CLAUDE_3_5_SONNET;
-    
-    // List of currently supported models (should be updated as Puter API evolves)
-    const SUPPORTED_MODELS = [
-      CLAUDE_MODELS.CLAUDE_3_7_SONNET, 
-      CLAUDE_MODELS.CLAUDE_3_5_SONNET,
-      CLAUDE_MODELS.GPT_4O,
-      CLAUDE_MODELS.O1,
-      CLAUDE_MODELS.O1_PRO,
-      CLAUDE_MODELS.O3,
-      CLAUDE_MODELS.O3_MINI,
-      CLAUDE_MODELS.O4_MINI,
-      CLAUDE_MODELS.GPT_4_1,
-      CLAUDE_MODELS.GEMINI_2_0_FLASH,
-      CLAUDE_MODELS.META_LLAMA_3_1_8B,
-      CLAUDE_MODELS.META_LLAMA_3_1_70B,
-      CLAUDE_MODELS.META_LLAMA_3_1_405B,
-      CLAUDE_MODELS.DEEPSEEK_CHAT,
-      CLAUDE_MODELS.DEEPSEEK_REASONER,
-      CLAUDE_MODELS.PIXTRAL_LARGE_LATEST,
-      CLAUDE_MODELS.GEMMA_2_27B_IT,
-      CLAUDE_MODELS.GROK_BETA,
-      CLAUDE_MODELS.GROK4,
-      CLAUDE_MODELS.GPT5
-    ];
-    
-    // Check if selected model is in the supported list
-    if (!SUPPORTED_MODELS.includes(modelToUse)) {
-      console.warn(`Model ${modelToUse} might not be supported yet by the Puter API`);
-      if (isDebugMode()) {
-        debugLog(`Model ${modelToUse} might not be fully supported, will attempt anyway`);
-      }
-      onStreamUpdate("⚠️ Warning: The selected model may not be fully supported. Attempting to use it anyway...\n\n");
-    }
     
     if (isDebugMode()) {
       debugLog(`Sending message to Claude, retry: ${retryCount}/${MAX_RETRIES}, model: ${modelToUse}`);
