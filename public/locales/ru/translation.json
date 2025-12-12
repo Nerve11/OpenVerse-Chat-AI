@@ -4,11 +4,10 @@
     "welcome": "Добро пожаловать в OpenVerse Chat AI",
     "connecting": "Подключение...",
     "connected": "Подключено",
-    "error": "Ошибка подключения",
-    "chat": "Чат"
+    "error": "Ошибка подключения"
   },
   "sidebar": {
-    "models": "Модели AI",
+    "models": "Список моделей",
     "settings": "Настройки"
   },
   "chat": {
@@ -20,7 +19,7 @@
   },
   "controls": {
     "systemPrompt": "Системный промпт",
-    "editPrompt": Редактировать промпт",
+    "editPrompt": "Редактировать промпт",
     "clearChat": "Очистить чат",
     "addFiles": "Добавить файлы",
     "temperature": "Температура",
