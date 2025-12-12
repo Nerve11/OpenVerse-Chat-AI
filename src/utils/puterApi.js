@@ -38,6 +38,27 @@ export const CLAUDE_MODELS = {
 };
 
 /**
+ * Определяет провайдера по ID модели
+ * @param {string} modelId - ID модели
+ * @returns {string} Название провайдера
+ */
+const detectProvider = (modelId) => {
+  if (!modelId) return 'Unknown';
+  
+  const id = modelId.toLowerCase();
+  
+  if (id.includes('claude')) return 'Anthropic';
+  if (id.includes('gpt') || id.includes('o1') || id.includes('o3') || id.includes('o4') || id.startsWith('openai/')) return 'OpenAI';
+  if (id.includes('gemini') || id.includes('gemma') || id.startsWith('google/')) return 'Google';
+  if (id.includes('llama') || id.startsWith('meta')) return 'Meta';
+  if (id.includes('deepseek')) return 'DeepSeek';
+  if (id.includes('mistral') || id.includes('pixtral') || id.includes('codestral')) return 'Mistral';
+  if (id.includes('grok') || id.startsWith('x-ai/') || id.startsWith('xai/')) return 'xAI';
+  
+  return 'Other';
+};
+
+/**
  * Получает список доступных моделей ИИ через Puter API
  * @returns {Promise<Array>} Массив объектов с информацией о моделях
  */
@@ -49,26 +70,56 @@ export const getAvailableModels = async () => {
       return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
         id: value,
         name: key.replace(/_/g, ' '),
-        provider: 'Unknown'
+        provider: detectProvider(value)
       }));
     }
 
     debugLog('Загрузка списка доступных моделей через Puter API');
     
-    // Используем Puter API для получения списка моделей
-    // Согласно документации Puter.com, используем puter.ai API
-    const models = await window.puter.ai.models();
+    // Используем CORRECT METHOD: puter.ai.listModels()
+    const modelsResponse = await window.puter.ai.listModels();
+    
+    debugLog(`Получен ответ от puter.ai.listModels():`, modelsResponse);
+    
+    // Обрабатываем различные форматы ответа
+    let models = [];
+    
+    if (Array.isArray(modelsResponse)) {
+      // Если ответ - это массив
+      models = modelsResponse;
+    } else if (modelsResponse && typeof modelsResponse === 'object') {
+      // Если ответ - объект с полем models/data/items
+      models = modelsResponse.models || modelsResponse.data || modelsResponse.items || [];
+    }
+    
+    if (!Array.isArray(models) || models.length === 0) {
+      console.warn('Не удалось получить список моделей из API, используем fallback');
+      debugLog('Ответ API не содержит массив моделей:', modelsResponse);
+      // Fallback
+      return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
+        id: value,
+        name: key.replace(/_/g, ' '),
+        provider: detectProvider(value)
+      }));
+    }
     
     debugLog(`Загружено ${models.length} моделей из Puter API`);
     
     // Форматируем данные для использования в приложении
-    return models.map(model => ({
-      id: model.id || model.name,
-      name: model.name || model.id,
-      provider: model.provider || 'Unknown',
-      description: model.description || '',
-      capabilities: model.capabilities || []
-    }));
+    return models.map(model => {
+      // Обрабатываем разные форматы объекта модели
+      const modelId = model.id || model.model_id || model.name || model.model;
+      const modelName = model.name || model.display_name || model.id || modelId;
+      const provider = model.provider || model.owner || detectProvider(modelId);
+      
+      return {
+        id: modelId,
+        name: modelName,
+        provider: provider,
+        description: model.description || '',
+        capabilities: model.capabilities || model.features || []
+      };
+    });
   } catch (error) {
     console.error('Ошибка при загрузке списка моделей:', error);
     debugLog(`Ошибка загрузки моделей: ${error.message}`);
@@ -77,33 +128,8 @@ export const getAvailableModels = async () => {
     return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
       id: value,
       name: key.replace(/_/g, ' '),
-      provider: 'Fallback'
+      provider: detectProvider(value)
     }));
-  }
-};
-
-/**
- * Получает список провайдеров моделей ИИ
- * @returns {Promise<Array>} Массив провайдеров моделей
- */
-export const listModelProviders = async () => {
-  try {
-    if (!isPuterAvailable()) {
-      debugLog('Puter.js недоступен для загрузки провайдеров');
-      return [];
-    }
-
-    debugLog('Загрузка списка провайдеров моделей');
-    
-    // Используем Puter API для получения провайдеров
-    const providers = await window.puter.ai.providers();
-    
-    debugLog(`Загружено ${providers.length} провайдеров`);
-    return providers;
-  } catch (error) {
-    console.error('Ошибка при загрузке провайдеров:', error);
-    debugLog(`Ошибка загрузки провайдеров: ${error.message}`);
-    return [];
   }
 };
 
