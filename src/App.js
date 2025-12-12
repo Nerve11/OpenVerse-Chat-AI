@@ -19,34 +19,25 @@ const generateUniqueId = () => {
 // Function to handle AI API calls
 const sendToAI = async (message, setStreamingMessage, selectedModel, systemPrompt, testMode, temperature) => {
   try {
-    // Check if Puter.js is loaded and available
     if (!isPuterAvailable()) {
       throw new Error("Puter.js API not available");
     }
 
-    // Clear any previous streaming message
     setStreamingMessage({ content: '', role: 'assistant', id: generateUniqueId() });
-
-    // Create response buffer to handle potential state update issues
     let responseBuffer = '';
     
     try {
-      // Call AI through Puter.js with updated parameters
       await sendMessageToClaude(
         message, 
         (update) => {
-          // Make sure update is valid text
           if (typeof update !== 'string') {
             console.warn("Invalid update received:", update);
             return;
           }
           
-          // Append to buffer first
           responseBuffer += update;
           
-          // Use functional state update to prevent race conditions
           setStreamingMessage(prev => {
-            // If somehow the previous state is lost, reconstruct it
             if (!prev || prev.content === undefined) {
               return { 
                 content: responseBuffer, 
@@ -57,7 +48,7 @@ const sendToAI = async (message, setStreamingMessage, selectedModel, systemPromp
             
             return {
               ...prev,
-              content: responseBuffer // Always use complete buffer
+              content: responseBuffer
             };
           });
         },
@@ -71,7 +62,6 @@ const sendToAI = async (message, setStreamingMessage, selectedModel, systemPromp
     } catch (apiError) {
       console.error("API Error:", apiError);
       
-      // Ensure final buffer content is displayed even after an error
       if (responseBuffer) {
         setStreamingMessage(prev => ({
           ...prev,
@@ -120,12 +110,10 @@ const App = ({ puterLoaded, puterTimeout }) => {
   const [attachments, setAttachments] = useState([]);
   const [availableModels, setAvailableModels] = useState([]);
   
-  // Keep the ref in sync with the state
   useEffect(() => {
     currentStreamingMessageRef.current = streamingMessage;
   }, [streamingMessage]);
   
-  // Загрузка доступных моделей
   useEffect(() => {
     const loadModels = async () => {
       if (isPuterAvailable()) {
@@ -143,7 +131,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
     return () => clearInterval(interval);
   }, [puterLoaded]);
   
-  // Save system prompt
   useEffect(() => {
     if (systemPrompt) {
       localStorage.setItem('systemPrompt', systemPrompt);
@@ -152,7 +139,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
     }
   }, [systemPrompt]);
   
-  // Show notification
   useEffect(() => {
     if (showPromptNotification) {
       const timer = setTimeout(() => {
@@ -162,7 +148,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
     }
   }, [showPromptNotification]);
   
-  // Check connection status
   useEffect(() => {
     const setupPuter = async () => {
       try {
@@ -319,10 +304,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
     setMessages([]);
   };
 
-  const handleSearch = () => {
-    console.log("Search clicked");
-  };
-
   const handleToggleDebug = async () => {
     const newDebugState = !debugActive;
     setDebugActive(newDebugState);
@@ -368,7 +349,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
     <ErrorBoundary>
       <CustomThemeProvider>
         <div className="main-container">
-          {/* Левая боковая панель */}
           <Sidebar
             selectedModel={selectedModel}
             onSelectModel={handleSelectModel}
@@ -378,7 +358,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
             onToggleSystemPromptVisibility={toggleSystemPromptVisibility}
           />
           
-          {/* Основной контент */}
           <div className="main-content">
             <div className="header">
               <div className="header-title">
@@ -426,12 +405,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
               isSystemPromptVisible={isSystemPromptVisible}
               onToggleSystemPromptVisibility={toggleSystemPromptVisibility}
               onClearSystemPrompt={handleClearSystemPrompt}
-              selectedModel={selectedModel}
-              onSelectModel={handleSelectModel}
-              isModelDropdownOpen={false}
-              onToggleModelDropdown={() => {}}
-              onClearChat={handleClearChat}
-              onSearch={handleSearch}
               debugActive={debugActive}
               onToggleDebug={handleToggleDebug}
               testMode={testMode}
@@ -440,7 +413,6 @@ const App = ({ puterLoaded, puterTimeout }) => {
               onTemperatureChange={handleTemperatureChange}
               onFilesAdded={handleFilesAdded}
               attachmentsCount={attachments.length}
-              availableModels={availableModels}
             />
             
             {showPromptNotification && systemPrompt && (
