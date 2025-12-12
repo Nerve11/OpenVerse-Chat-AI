@@ -126,8 +126,9 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     scrollToBottom('auto');
   }, []);
 
-  // Показывать индикатор печати только когда нет streamingMessage, но идет стриминг
-  const showTypingIndicator = !streamingMessage && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
+  // НЕ показывать индикатор печати - он больше не нужен
+  // Индикатор был создан для случаев когда нет streamingMessage,
+  // но это состояние практически не встречается в реальном использовании
 
   return (
     <div 
@@ -142,19 +143,6 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
       )}
       {apiErrorElement}
       {messageElements}
-      
-      {/* Индикатор печати */}
-      {showTypingIndicator && (
-        <div className="typing-indicator-container">
-          <div className="typing-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <span className="typing-text">AI печатает...</span>
-        </div>
-      )}
-      
       {streamingElement}
       <div ref={messagesEndRef} style={{ height: '1px' }} />
       
