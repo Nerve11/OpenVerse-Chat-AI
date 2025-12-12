@@ -54,23 +54,9 @@ const sendToClaude = async (message, setStreamingMessage, selectedModel, systemP
               };
             }
             
-            // Ensure the text isn't duplicated if the update replaces content
-            // (this can happen with some streaming implementations)
-            const existingContent = prev.content || '';
-            
-            // If update would create duplicate content, replace instead of append
-            if (responseBuffer.endsWith(update) && 
-                existingContent.endsWith(update.substring(0, Math.min(update.length, 10)))) {
-              return {
-                ...prev,
-                content: responseBuffer
-              };
-            }
-            
-            // Normal case: append the update
             return {
               ...prev,
-              content: responseBuffer // Use complete buffer instead of incremental
+              content: responseBuffer // Always use complete buffer
             };
           });
         },
@@ -324,31 +310,9 @@ const App = ({ puterLoaded, puterTimeout }) => {
       
       // Add completed assistant message to messages list
       if (currentMessage && currentMessage.content) {
-        // Better detection for incomplete responses
-        let finalContent = currentMessage.content;
-        const isCompleteSentence = finalContent.trim().endsWith('.') || 
-                                   finalContent.trim().endsWith('?') || 
-                                   finalContent.trim().endsWith('!') ||
-                                   finalContent.trim().endsWith(':') ||
-                                   finalContent.trim().endsWith(')') ||
-                                   finalContent.trim().endsWith('"') ||
-                                   finalContent.trim().endsWith("'");
-        
-        // Check for very short responses or responses with abrupt endings
-        const isPotentiallyIncomplete = 
-          (finalContent.length < 100 && !isCompleteSentence) || 
-          // Check if ends mid-sentence (ends with a word character)
-          /[a-zA-Z0-9а-яА-Я]$/.test(finalContent.trim());
-        
-        if (isPotentiallyIncomplete) {
-          console.warn("Response appears to be incomplete:", finalContent);
-          
-          // Add a warning to the message
-          finalContent += "\n\n[Ответ может быть неполным. Пожалуйста, попробуйте задать вопрос снова.]";
-        }
-        
+        // БОЛЬШЕ НЕ ДОБАВЛЯЕМ АВТОМАТИЧЕСКОЕ ПРЕДУПРЕЖДЕНИЕ О НЕПОЛНОТЕ
         const assistantMessage = {
-          content: finalContent,
+          content: currentMessage.content,
           role: 'assistant',
           id: currentMessage.id || generateUniqueId()
         };
@@ -597,5 +561,3 @@ const App = ({ puterLoaded, puterTimeout }) => {
 
 
 export default App;
-
- 
