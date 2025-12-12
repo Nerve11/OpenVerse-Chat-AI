@@ -37,11 +37,6 @@ export const CLAUDE_MODELS = {
   GPT5: 'gpt-5'
 };
 
-/**
- * Определяет провайдера по ID модели
- * @param {string} modelId - ID модели
- * @returns {string} Название провайдера
- */
 const detectProvider = (modelId) => {
   if (!modelId) return 'Unknown';
   
@@ -58,15 +53,10 @@ const detectProvider = (modelId) => {
   return 'Other';
 };
 
-/**
- * Получает список доступных моделей ИИ через Puter API
- * @returns {Promise<Array>} Массив объектов с информацией о моделях
- */
 export const getAvailableModels = async () => {
   try {
     if (!isPuterAvailable()) {
       debugLog('Puter.js недоступен для загрузки списка моделей');
-      // Возвращаем fallback список
       return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
         id: value,
         name: key.replace(/_/g, ' '),
@@ -75,27 +65,20 @@ export const getAvailableModels = async () => {
     }
 
     debugLog('Загрузка списка доступных моделей через Puter API');
-    
-    // Используем CORRECT METHOD: puter.ai.listModels()
     const modelsResponse = await window.puter.ai.listModels();
-    
     debugLog(`Получен ответ от puter.ai.listModels():`, modelsResponse);
     
-    // Обрабатываем различные форматы ответа
     let models = [];
     
     if (Array.isArray(modelsResponse)) {
-      // Если ответ - это массив
       models = modelsResponse;
     } else if (modelsResponse && typeof modelsResponse === 'object') {
-      // Если ответ - объект с полем models/data/items
       models = modelsResponse.models || modelsResponse.data || modelsResponse.items || [];
     }
     
     if (!Array.isArray(models) || models.length === 0) {
       console.warn('Не удалось получить список моделей из API, используем fallback');
       debugLog('Ответ API не содержит массив моделей:', modelsResponse);
-      // Fallback
       return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
         id: value,
         name: key.replace(/_/g, ' '),
@@ -105,9 +88,7 @@ export const getAvailableModels = async () => {
     
     debugLog(`Загружено ${models.length} моделей из Puter API`);
     
-    // Форматируем данные для использования в приложении
     return models.map(model => {
-      // Обрабатываем разные форматы объекта модели
       const modelId = model.id || model.model_id || model.name || model.model;
       const modelName = model.name || model.display_name || model.id || modelId;
       const provider = model.provider || model.owner || detectProvider(modelId);
@@ -124,7 +105,6 @@ export const getAvailableModels = async () => {
     console.error('Ошибка при загрузке списка моделей:', error);
     debugLog(`Ошибка загрузки моделей: ${error.message}`);
     
-    // В случае ошибки возвращаем fallback список
     return Object.entries(CLAUDE_MODELS).map(([key, value]) => ({
       id: value,
       name: key.replace(/_/g, ' '),
@@ -133,28 +113,18 @@ export const getAvailableModels = async () => {
   }
 };
 
-/**
- * Кеширование списка моделей для повышения производительности
- */
 let cachedModels = null;
 let cacheTimestamp = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+const CACHE_DURATION = 5 * 60 * 1000;
 
-/**
- * Получает список моделей с кешированием
- * @param {boolean} forceRefresh - Принудительно обновить кеш
- * @returns {Promise<Array>} Массив моделей
- */
 export const getCachedModels = async (forceRefresh = false) => {
   const now = Date.now();
   
-  // Проверяем актуальность кеша
   if (!forceRefresh && cachedModels && cacheTimestamp && (now - cacheTimestamp) < CACHE_DURATION) {
     debugLog('Использование кешированного списка моделей');
     return cachedModels;
   }
   
-  // Загружаем свежий список
   debugLog('Обновление списка моделей');
   cachedModels = await getAvailableModels();
   cacheTimestamp = now;
@@ -162,10 +132,6 @@ export const getCachedModels = async (forceRefresh = false) => {
   return cachedModels;
 };
 
-/**
- * Checks if Puter.js API is available
- * @returns {boolean} True if Puter.js is available
- */
 export const isPuterAvailable = () => {
   try {
     const available = typeof window.puter !== 'undefined' && 
@@ -184,20 +150,9 @@ export const isPuterAvailable = () => {
   }
 };
 
-/**
- * @param {string} message - The user's message
- * @param {function} onStreamUpdate - Callback for streaming updates
- * @param {string} model - The model to use (defaults to CLAUDE_3_5_SONNET)
- * @param {string} systemPrompt - Optional system prompt to influence model behavior
- * @param {boolean} testMode - Whether to use test mode
- * @param {number} temperature - The temperature for the model
- * @param {number} retryCount - Current retry count (internal use)
- * @returns {Promise<string>} The complete response
- */
 export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUDE_MODELS.CLAUDE_3_5_SONNET, systemPrompt = '', testMode = false, temperature = 1.0, retryCount = 0) => {
   let fullResponse = '';
 
-  // If Puter is unavailable, provide a local simulation so the UI can still be tested without credits
   if (testMode && !isPuterAvailable()) {
     debugLog('Test Mode: Puter.js not available. Using local simulated stream.');
     const mockResponse =
@@ -221,33 +176,28 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
   }
 
   try {
-    // Validate that we have a proper model specified
     const modelToUse = model || CLAUDE_MODELS.CLAUDE_3_5_SONNET;
     
     if (isDebugMode()) {
-      debugLog(`Sending message to Claude, retry: ${retryCount}/${MAX_RETRIES}, model: ${modelToUse}`);
+      debugLog(`Sending message to model: ${modelToUse}, retry: ${retryCount}/${MAX_RETRIES}`);
       if (systemPrompt) {
         debugLog(`Using system prompt: ${systemPrompt.substring(0, 50)}${systemPrompt.length > 50 ? '...' : ''}`);
       }
     }
     
-    // If we're already in fallback mode, use fallback directly
     if (isUsingFallback()) {
       debugLog('Using fallback mode for message sending');
       return await fallbackSendMessage(message, onStreamUpdate, systemPrompt);
     }
     
-    // Check if Puter.js is available
     if (!isPuterAvailable()) {
       debugLog('Puter.js not available for message sending');
       
-      // If we've already retried, use fallback
       if (retryCount > 0) {
         console.warn(`Switching to fallback after ${retryCount} failed attempts with Puter.js`);
         return await fallbackSendMessage(message, onStreamUpdate, systemPrompt);
       }
       
-      // Try to load Puter.js first
       debugLog('Attempting to load Puter.js');
       const loaded = await loadPuterScript();
       if (!loaded) {
@@ -256,18 +206,13 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
       }
     }
 
-    // Call Claude through Puter.js API
     try {
       debugLog(`Calling model: ${modelToUse} API via Puter.js`);
       
-      // Wrap the API call in a try/catch to handle any model-specific errors
       try {
-        // Different handling based on whether we're using messages or direct prompt
         let response;
         
-        // According to the Puter.js documentation, there are multiple ways to call the API
         if (systemPrompt && systemPrompt.trim()) {
-          // If we have a system prompt, use the messages array format
           const messages = [
             {
               role: 'system',
@@ -279,50 +224,45 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
             }
           ];
           
-          // Call with messages array and model in options
           if (isDebugMode()) {
             debugLog(`Calling with messages array format: ${JSON.stringify(messages.map(m => ({ role: m.role, content_length: m.content.length })))}`);
           }
           
-          // Per docs: puter.ai.chat(messages, testMode = false, options = {})
           response = await window.puter.ai.chat(
             messages,
             Boolean(testMode),
             {
               model: modelToUse,
               stream: true,
-              temperature: temperature
+              temperature: temperature,
+              max_tokens: 100000  // Убран лимит - максимальное количество токенов
             }
           );
         } else {
-          // If no system prompt, use the simpler format with just the message and options
           if (isDebugMode()) {
             debugLog(`Calling with simple format: message length ${message.length}`);
           }
           
-          // Per docs: puter.ai.chat(prompt, testMode = false, options = {})
           response = await window.puter.ai.chat(
             message,
             Boolean(testMode),
             {
               model: modelToUse,
               stream: true,
-              temperature: temperature
+              temperature: temperature,
+              max_tokens: 100000  // Убран лимит - максимальное количество токенов
             }
           );
         }
         
-        // Handle streaming response
         let isStreamComplete = false;
         let streamTimeout;
         let lastDataTime = Date.now();
         
         try {
-          // Увеличен таймаут до 120 секунд и добавлено отслеживание активности
-          const STREAM_TIMEOUT = 120000; // 120 секунд
-          const INACTIVITY_TIMEOUT = 30000; // 30 секунд без данных
+          const STREAM_TIMEOUT = 120000;
+          const INACTIVITY_TIMEOUT = 30000;
           
-          // Функция для сброса таймаута при получении данных
           const resetTimeout = () => {
             lastDataTime = Date.now();
             if (streamTimeout) {
@@ -340,12 +280,9 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
             }, STREAM_TIMEOUT);
           };
           
-          // Установка начального таймаута
           resetTimeout();
           
-          // Process the streaming response with better error handling
           for await (const part of response) {
-            // Сброс таймаута при каждом получении данных
             resetTimeout();
             
             if (part && part.text) {
@@ -357,44 +294,34 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
             }
           }
           
-          // Mark stream as complete
           isStreamComplete = true;
           clearTimeout(streamTimeout);
           
-          // Убрана проверка на минимальную длину ответа
-          // Ответ считается полным, если поток завершился без ошибок
           debugLog(`Stream completed successfully. Response length: ${fullResponse.length} characters`);
           
         } catch (streamError) {
-          // Handle errors during streaming
           console.error("Error during streaming:", streamError);
           clearTimeout(streamTimeout);
           
-          // Notify user about the interrupted response
           const errorMessage = "\n\n[Ответ был прерван из-за ошибки при получении данных]";
           onStreamUpdate(errorMessage);
           fullResponse += errorMessage;
           
-          // Check if this is a recoverable error (like a temporary network hiccup)
           const isRecoverable = streamError.message && (
             streamError.message.includes("timeout") || 
             streamError.message.includes("temporarily") || 
             streamError.message.includes("retry")
           );
           
-          // If error seems recoverable and we haven't retried too many times, try again
           if (isRecoverable && retryCount < MAX_RETRIES - 1) {
             console.log(`Attempting to recover from stream interruption (retry ${retryCount + 1}/${MAX_RETRIES})`);
             onStreamUpdate("\n\n[Пытаемся восстановить соединение...]");
             
-            // Wait a moment before retrying
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            // Retry with incremented retry count
             return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, testMode, temperature, retryCount + 1);
           }
           
-          // Rethrow error if it's severe
           if (streamError.message && (
               streamError.message.includes("network") || 
               streamError.message.includes("connection") ||
@@ -404,10 +331,8 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
           }
         }
       } catch (modelError) {
-        // If there's an error with the specific model, report it but don't auto-switch
         console.error(`Error with model ${modelToUse}:`, modelError);
         
-        // Provide more specific error details to help diagnose the issue
         let errorMessage = "⚠️ Ошибка с выбранной моделью. ";
         
         if (modelError.message) {
@@ -422,7 +347,6 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
           } else if (modelError.message.includes("format")) {
             errorMessage += `Неверный формат запроса для модели "${modelToUse}". `;
           } else {
-            // Include actual error message for transparency
             errorMessage += `Ошибка: ${modelError.message}`;
           }
         } else {
@@ -430,12 +354,9 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
         }
         
         onStreamUpdate(errorMessage);
-        
-        // Just throw the error instead of switching to Claude 3.5 Sonnet
         throw modelError;
       }
 
-      // Reset fallback status if successful
       if (isUsingFallback()) {
         debugLog('Resetting fallback status after successful call');
         setFallbackStatus(false);
@@ -443,7 +364,7 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
       
       return fullResponse;
     } catch (apiError) {
-      console.error("Error calling Claude API directly:", apiError);
+      console.error("Error calling API directly:", apiError);
       
       if (isDebugMode()) {
         debugLog('Collecting diagnostics after API error');
@@ -452,40 +373,32 @@ export const sendMessageToClaude = async (message, onStreamUpdate, model = CLAUD
         });
       }
       
-      // If this is not our last retry, try again
       if (retryCount < MAX_RETRIES - 1) {
-        console.log(`Retrying Claude API call (${retryCount + 1}/${MAX_RETRIES - 1})...`);
+        console.log(`Retrying API call (${retryCount + 1}/${MAX_RETRIES - 1})...`);
         return await sendMessageToClaude(message, onStreamUpdate, modelToUse, systemPrompt, testMode, temperature, retryCount + 1);
       }
       
-      // Otherwise, use fallback
       console.warn("Switching to fallback API after exhausting retries");
       return await fallbackSendMessage(message, onStreamUpdate, systemPrompt);
     }
   } catch (error) {
-    console.error("Error sending message to Claude:", error);
+    console.error("Error sending message:", error);
     throw error;
   }
 };
 
-/**
- * Loads the Puter.js script if not already loaded
- * @returns {Promise<boolean>} Resolves to true if loaded successfully
- */
 export const loadPuterScript = () => {
   return new Promise((resolve) => {
     if (isDebugMode()) {
       debugLog('Attempting to load Puter.js script');
     }
     
-    // If already loaded, resolve immediately
     if (isPuterAvailable()) {
       debugLog('Puter.js already available');
       resolve(true);
       return;
     }
 
-    // Script already loading, wait for it
     if (document.querySelector('script[src*="puter.com"]')) {
       debugLog('Puter.js script already loading, waiting for it');
       const checkInterval = setInterval(() => {
@@ -495,16 +408,14 @@ export const loadPuterScript = () => {
           resolve(true);
         }
       }, 200);
-      // Set a timeout for script loading
       setTimeout(() => {
         clearInterval(checkInterval);
         debugLog('Timed out waiting for Puter.js to load');
         resolve(false);
-      }, 5000); // 5 second timeout
+      }, 5000);
       return;
     }
 
-    // Load the script
     debugLog('Creating new Puter.js script tag');
     const script = document.createElement('script');
     script.src = 'https://js.puter.com/v2/';
@@ -520,12 +431,11 @@ export const loadPuterScript = () => {
           resolve(true);
         }
       }, 200);
-      // Set a timeout for initialization
       setTimeout(() => {
         clearInterval(checkInterval);
         debugLog('Timed out waiting for Puter.js to initialize');
         resolve(false);
-      }, 5000); // 5 second timeout
+      }, 5000);
     };
     
     script.onerror = () => {
