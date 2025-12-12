@@ -989,6 +989,155 @@ a {
   scrollbar-color: rgba(118, 87, 254, 0.4) transparent;
 }
 
+/* КНОПКА ПРОКРУТКИ ВНИЗ */
+.scroll-to-bottom-btn {
+  position: fixed;
+  bottom: 120px;
+  right: 50%;
+  transform: translateX(50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #7657fe 0%, #9b59fe 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 50px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(118, 87, 254, 0.4);
+  z-index: 100;
+  animation: slideUpFade 0.3s ease-out forwards;
+  transition: all 0.2s ease;
+}
+
+.scroll-to-bottom-btn:hover {
+  transform: translateX(50%) translateY(-2px);
+  box-shadow: 0 6px 16px rgba(118, 87, 254, 0.5);
+}
+
+.scroll-to-bottom-btn:active {
+  transform: translateX(50%) translateY(0);
+}
+
+.scroll-icon {
+  font-size: 18px;
+  line-height: 1;
+  animation: bounce 1.5s infinite;
+}
+
+.unread-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  background: #ffffff;
+  color: #7657fe;
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateX(50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(50%) translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+/* ИНДИКАТОР ПЕЧАТИ */
+.typing-indicator-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #1e1e20;
+  border: 1px solid #333335;
+  border-radius: 12px;
+  width: fit-content;
+  max-width: 200px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #7657fe;
+  border-radius: 50%;
+  animation: typingDot 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.typing-text {
+  color: #9a9a9a;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  30% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .scroll-to-bottom-btn {
+    bottom: 100px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .typing-indicator-container {
+    padding: 10px 14px;
+  }
+  
+  .typing-text {
+    font-size: 12px;
+  }
+}
+
 /* Debug button and diagnostic styles */
 .debug-button {
   display: flex;
