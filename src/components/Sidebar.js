@@ -94,7 +94,7 @@ const Sidebar = ({
       <div className="sidebar-content">
         <div className="sidebar-section">
           <div className="sidebar-section-title">
-            {t('sidebar.models') || 'AI MODELS'}
+            {t('sidebar.models')}
           </div>
           <div className="model-list">
             {availableModels && availableModels.length > 0 ? (
@@ -144,24 +144,24 @@ const Sidebar = ({
           <button 
             className="sidebar-button"
             onClick={onToggleSystemPromptVisibility}
-            title={t('controls.systemPrompt') || 'System Prompt'}
+            title={t('controls.systemPrompt')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
-            <span>{systemPrompt ? t('controls.editPrompt') || 'Edit Prompt' : t('controls.systemPrompt') || 'System Prompt'}</span>
+            <span>{systemPrompt ? t('controls.editPrompt') : t('controls.systemPrompt')}</span>
           </button>
           
           <button 
             className="sidebar-button"
             onClick={onClearChat}
-            title={t('controls.clearChat') || 'Clear Chat'}
+            title={t('controls.clearChat')}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
             </svg>
-            <span>{t('controls.clearChat') || 'Clear Chat'}</span>
+            <span>{t('controls.clearChat')}</span>
           </button>
         </div>
       </div>
