@@ -11,7 +11,9 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const lastScrollTop = useRef(0);
+  const lastMessageCount = useRef(messages.length);
   const { t } = useTranslation();
 
   // Memoize the message components to prevent unnecessary re-rendering
@@ -54,6 +56,15 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     return distanceFromBottom < 150; // Порог в пикселях
   };
 
+  // Track unread messages when user scrolls up
+  useEffect(() => {
+    if (isUserScrolling && messages.length > lastMessageCount.current) {
+      const newMessages = messages.length - lastMessageCount.current;
+      setUnreadCount(prev => prev + newMessages);
+    }
+    lastMessageCount.current = messages.length;
+  }, [messages.length, isUserScrolling]);
+
   // Handle scroll events to detect user scrolling
   const handleScroll = () => {
     if (!containerRef.current) return;
@@ -67,6 +78,7 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     } else if (isAtBottom) {
       // Если пользователь прокрутил в самый низ
       setIsUserScrolling(false);
+      setUnreadCount(0); // Сбросить счетчик непрочитанных
     }
     
     lastScrollTop.current = scrollTop;
@@ -81,6 +93,8 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
         inline: 'nearest'
       });
     }
+    setIsUserScrolling(false);
+    setUnreadCount(0);
   };
 
   // Auto-scroll when new messages arrive (only if user is near bottom)
@@ -112,6 +126,9 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     scrollToBottom('auto');
   }, []);
 
+  // Показывать индикатор печати только когда нет streamingMessage, но идет стриминг
+  const showTypingIndicator = !streamingMessage && messages.length > 0 && messages[messages.length - 1]?.role === 'user';
+
   return (
     <div 
       className="messages-container" 
@@ -125,8 +142,35 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
       )}
       {apiErrorElement}
       {messageElements}
+      
+      {/* Индикатор печати */}
+      {showTypingIndicator && (
+        <div className="typing-indicator-container">
+          <div className="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <span className="typing-text">AI печатает...</span>
+        </div>
+      )}
+      
       {streamingElement}
       <div ref={messagesEndRef} style={{ height: '1px' }} />
+      
+      {/* Кнопка прокрутки вниз */}
+      {isUserScrolling && (
+        <button 
+          className="scroll-to-bottom-btn"
+          onClick={() => scrollToBottom('smooth')}
+          aria-label="Прокрутить вниз"
+        >
+          <span className="scroll-icon">↓</span>
+          {unreadCount > 0 && (
+            <span className="unread-badge">{unreadCount}</span>
+          )}
+        </button>
+      )}
     </div>
   );
 };
