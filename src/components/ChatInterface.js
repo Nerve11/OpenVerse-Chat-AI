@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import Message from './Message';
 import { isPuterAvailable } from '../utils/puterApi';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,9 @@ import { useTranslation } from 'react-i18next';
 
 const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode }) => {
   const messagesEndRef = useRef(null);
+  const containerRef = useRef(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const lastScrollTop = useRef(0);
   const { t } = useTranslation();
 
   // Memoize the message components to prevent unnecessary re-rendering
@@ -43,15 +46,78 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     return null;
   }, [puterLoaded, messages.length, t]);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  // Check if user is near bottom of container
+  const isNearBottom = () => {
+    if (!containerRef.current) return true;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    return distanceFromBottom < 150; // Порог в пикселях
+  };
+
+  // Handle scroll events to detect user scrolling
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 10;
+    
+    // Если пользователь прокручивает вверх или не внизу
+    if (scrollTop < lastScrollTop.current || !isAtBottom) {
+      setIsUserScrolling(true);
+    } else if (isAtBottom) {
+      // Если пользователь прокрутил в самый низ
+      setIsUserScrolling(false);
     }
-  }, [messages, streamingMessage]);
+    
+    lastScrollTop.current = scrollTop;
+  };
+
+  // Smooth scroll to bottom
+  const scrollToBottom = (behavior = 'smooth') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: behavior,
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
+  };
+
+  // Auto-scroll when new messages arrive (only if user is near bottom)
+  useEffect(() => {
+    if (!isUserScrolling && isNearBottom()) {
+      // Небольшая задержка для того, чтобы DOM успел обновиться
+      requestAnimationFrame(() => {
+        scrollToBottom('smooth');
+      });
+    }
+  }, [messages, isUserScrolling]);
+
+  // Always auto-scroll during streaming if user is not manually scrolling
+  useEffect(() => {
+    if (streamingMessage && !isUserScrolling) {
+      // При стриминге прокручиваем более агрессивно
+      const scrollInterval = setInterval(() => {
+        if (isNearBottom() && !isUserScrolling) {
+          scrollToBottom('auto'); // Используем 'auto' для более плавного опыта во время стриминга
+        }
+      }, 100);
+      
+      return () => clearInterval(scrollInterval);
+    }
+  }, [streamingMessage, isUserScrolling]);
+
+  // Scroll to bottom on initial load
+  useEffect(() => {
+    scrollToBottom('auto');
+  }, []);
 
   return (
-    <div className="messages-container">
+    <div 
+      className="messages-container" 
+      ref={containerRef}
+      onScroll={handleScroll}
+    >
       {messages.length === 0 && !streamingMessage && !apiErrorElement && (
         <div className="welcome-message">
           <h2>{t('app.welcome')}</h2>
@@ -60,9 +126,9 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
       {apiErrorElement}
       {messageElements}
       {streamingElement}
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} style={{ height: '1px' }} />
     </div>
   );
 };
 
-export default ChatInterface; 
+export default ChatInterface;
