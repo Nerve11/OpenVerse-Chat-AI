@@ -1,10 +1,9 @@
 import React from 'react';
 import ErrorBoundary from './ErrorBoundary';
-import ModelSelector from './ModelSelector';
-import SystemPrompt from './SystemPrompt';
 import TestModeToggle from './TestModeToggle';
 import TemperatureSlider from './TemperatureSlider';
 import FileUploader from './FileUploader';
+import SystemPrompt from './SystemPrompt';
 import { useTranslation } from 'react-i18next';
 
 const Controls = ({
@@ -13,12 +12,6 @@ const Controls = ({
   isSystemPromptVisible,
   onToggleSystemPromptVisibility,
   onClearSystemPrompt,
-  selectedModel,
-  onSelectModel,
-  isModelDropdownOpen,
-  onToggleModelDropdown,
-  onClearChat,
-  onSearch,
   debugActive,
   onToggleDebug,
   testMode,
@@ -27,11 +20,11 @@ const Controls = ({
   onTemperatureChange,
   onFilesAdded,
   attachmentsCount,
-  availableModels,
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="flex-row">
+    <>
+      {/* SystemPrompt overlay - показывается при isSystemPromptVisible */}
       <ErrorBoundary>
         <SystemPrompt 
           systemPrompt={systemPrompt} 
@@ -42,46 +35,32 @@ const Controls = ({
         />
       </ErrorBoundary>
       
-      <ErrorBoundary>
-        <FileUploader onFilesAdded={onFilesAdded} filesCount={attachmentsCount} />
-      </ErrorBoundary>
-
-      <div className="choose-model">
+      {/* Нижняя панель с контролами */}
+      <div className="flex-row">
         <ErrorBoundary>
-          <ModelSelector 
-            selectedModel={selectedModel}
-            onSelectModel={onSelectModel}
-            isOpen={isModelDropdownOpen}
-            toggleDropdown={onToggleModelDropdown}
-            availableModels={availableModels}
+          <FileUploader onFilesAdded={onFilesAdded} filesCount={attachmentsCount} />
+        </ErrorBoundary>
+
+        <ErrorBoundary>
+          <TemperatureSlider
+            temperature={temperature}
+            onTemperatureChange={onTemperatureChange}
           />
         </ErrorBoundary>
+        
+        {debugActive && (
+          <div className="debug-indicator">
+            <span>🐛 Debug Mode</span>
+          </div>
+        )}
+        
+        {testMode && (
+          <div className="test-mode-indicator">
+            <span>🧪 Test Mode</span>
+          </div>
+        )}
       </div>
-      <ErrorBoundary>
-        <TemperatureSlider
-          temperature={temperature}
-          onTemperatureChange={onTemperatureChange}
-        />
-      </ErrorBoundary>
-      <div className="clear-chat" onClick={onClearChat}>
-        <div className="group-6">
-          <span className="clear-chat-7"><span>{t('controls.clear')}</span></span>
-          <div className="vector-8" />
-        </div>
-      </div>
-      <div className="search" onClick={onSearch}>
-        <div className="group-9">
-          <span className="search-a"><span>{t('controls.search')}</span></span>
-        </div>
-        <div className="vector-b" />
-      </div>
-      <div className={`debug-button ${debugActive ? 'active' : ''}`} onClick={onToggleDebug}>
-        <div className="group-debug">
-          <span className="debug-text"><span>{t('controls.debug')}</span></span>
-        </div>
-      </div>
-      <TestModeToggle testMode={testMode} onToggle={onToggleTestMode} />
-    </div>
+    </>
   );
 };
 
