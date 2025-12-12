@@ -8,6 +8,10 @@ const MessageContainer = styled.div`
   position: relative;
   width: 100%;
   margin-bottom: 20px;
+  
+  &:hover .copy-button {
+    opacity: 1;
+  }
 `;
 
 const MessageHeader = styled.div`
@@ -70,6 +74,40 @@ const MessageBox = styled.div`
     width: 100%;
     height: 1px;
     background: ${props => props.isUser ? '#7657fe' : '#333335'};
+  }
+`;
+
+const CopyButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: ${props => props.$copied ? '#10b981' : '#2d2d30'};
+  border: 1px solid ${props => props.$copied ? '#10b981' : '#3e3e42'};
+  color: ${props => props.$copied ? '#ffffff' : '#f5f1ff'};
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+  
+  &:hover {
+    background: ${props => props.$copied ? '#059669' : '#3e3e42'};
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
   }
 `;
 
@@ -164,14 +202,39 @@ const Dot = styled.div`
 // Wrapper to ensure text content is always in a span
 const TextWrapper = ({ children }) => <span>{children}</span>;
 
+// Copy icon SVG
+const CopyIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  </svg>
+);
+
+// Check icon SVG
+const CheckIcon = () => (
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+);
+
 const Message = ({ message, streaming, onDiscussCode }) => {
   const [formattedTime] = useState(() => {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   });
+  const [copied, setCopied] = useState(false);
   
   const isUser = message.role === 'user';
   const { t } = useTranslation();
+  
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Ошибка копирования:', err);
+    }
+  };
   
   return (
     <MessageContainer>
@@ -182,6 +245,16 @@ const Message = ({ message, streaming, onDiscussCode }) => {
       </MessageHeader>
       
       <MessageBox $isUser={isUser}>
+        <CopyButton 
+          className="copy-button"
+          onClick={handleCopy}
+          $copied={copied}
+          title={copied ? 'Скопировано!' : 'Копировать'}
+        >
+          {copied ? <CheckIcon /> : <CopyIcon />}
+          <span>{copied ? 'Скопировано' : 'Копировать'}</span>
+        </CopyButton>
+        
         <MessageContent>
           <ReactMarkdown components={{
             p: ({ node, children, ...props }) => <p {...props}><span>{children}</span></p>,
@@ -232,4 +305,4 @@ const Message = ({ message, streaming, onDiscussCode }) => {
   );
 };
 
-export default Message; 
+export default Message;
