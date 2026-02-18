@@ -23,7 +23,13 @@
     "clearChat": "Очистить чат",
     "addFiles": "Добавить файлы",
     "temperature": "Температура",
+    "maxTokens": "Макс. токенов",
+    "reasoningEffort": "Глубина рассуждений",
     "search": "Поиск"
+  },
+  "auth": {
+    "signIn": "Войти в аккаунт",
+    "signOut": "Выйти из аккаунта"
   },
   "message": {
     "copy": "Копировать",
