@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -8,7 +6,6 @@ import {
   ChevronRightIcon,
   CodeIcon,
   CopyIcon,
-  DownloadIcon,
   GlobeIcon,
   LoaderIcon,
   PencilIcon,
@@ -87,15 +84,12 @@ export function Thread() {
 function ThreadWelcome() {
   return (
     <div className="mx-auto my-auto flex w-full max-w-[var(--thread-max-width)] flex-grow flex-col">
-      {/* Hero */}
       <div className="flex w-full flex-grow flex-col items-center justify-center">
         <div className="flex size-full flex-col items-center justify-center gap-5 px-8 py-12">
           <div className="relative flex size-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-[0_0_40px_rgba(124,58,237,0.45)]">
             <SparklesIcon className="size-8 text-white" />
-            {/* subtle ring */}
             <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10" />
           </div>
-
           <div className="text-center">
             <h1 className="text-3xl font-bold tracking-tight text-white">
               OpenVerse AI
@@ -107,7 +101,6 @@ function ThreadWelcome() {
         </div>
       </div>
 
-      {/* Suggestion chips — 2×2 grid */}
       <div className="grid w-full gap-2 pb-4 sm:grid-cols-2">
         <SuggestionChip
           prompt="Explain quantum computing simply"
@@ -289,7 +282,7 @@ function UserActionBar() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Edit composer (inline editing)
+// Edit composer
 // ─────────────────────────────────────────────────────────────────────────────
 
 function EditComposer() {
@@ -302,19 +295,12 @@ function EditComposer() {
         />
         <div className="mx-3 mb-3 flex items-center gap-2 self-end">
           <ComposerPrimitive.Cancel asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-zinc-400 hover:text-white"
-            >
+            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white">
               Cancel
             </Button>
           </ComposerPrimitive.Cancel>
           <ComposerPrimitive.Send asChild>
-            <Button
-              size="sm"
-              className="bg-gradient-to-br from-violet-600 to-indigo-500 text-white hover:opacity-90"
-            >
+            <Button size="sm" className="bg-gradient-to-br from-violet-600 to-indigo-500 text-white hover:opacity-90">
               Update
             </Button>
           </ComposerPrimitive.Send>
@@ -334,7 +320,6 @@ function AssistantMessage() {
       className="relative mx-auto w-full max-w-[var(--thread-max-width)] py-4 animate-in fade-in slide-in-from-bottom-2 duration-200"
       data-role="assistant"
     >
-      {/* Avatar row */}
       <div className="mb-3 flex items-center gap-2.5 px-2">
         <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-500 shadow-[0_0_10px_rgba(124,58,237,0.45)]">
           <SparklesIcon className="size-3 text-white" />
@@ -342,7 +327,6 @@ function AssistantMessage() {
         <span className="text-xs font-semibold tracking-wide text-zinc-400">OpenVerse AI</span>
       </div>
 
-      {/* Body */}
       <div className="break-words px-2 leading-relaxed text-zinc-100">
         <MessagePrimitive.Parts
           components={{
@@ -354,11 +338,7 @@ function AssistantMessage() {
           }}
         />
         <MessageError />
-        <AuiIf
-          condition={({ thread, message }) =>
-            thread.isRunning && message.content.length === 0
-          }
-        >
+        <AuiIf condition={({ thread, message }) => thread.isRunning && message.content.length === 0}>
           <div className="flex items-center gap-2 text-violet-400/80">
             <LoaderIcon className="size-4 animate-spin" />
             <span className="text-xs">Thinking…</span>
@@ -366,7 +346,6 @@ function AssistantMessage() {
         </AuiIf>
       </div>
 
-      {/* Action bar */}
       <div className="mt-2 ml-2 flex">
         <BranchPicker />
         <AssistantActionBar />
@@ -406,14 +385,6 @@ function AssistantActionBar() {
           </AuiIf>
         </TooltipIconButton>
       </ActionBarPrimitive.Copy>
-      <ActionBarPrimitive.ExportMarkdown asChild>
-        <TooltipIconButton
-          tooltip="Export as Markdown"
-          className="rounded-lg p-2 transition-colors hover:bg-white/[0.06] hover:text-white"
-        >
-          <DownloadIcon />
-        </TooltipIconButton>
-      </ActionBarPrimitive.ExportMarkdown>
       <ActionBarPrimitive.Reload asChild>
         <TooltipIconButton
           tooltip="Regenerate"
@@ -434,10 +405,7 @@ function BranchPicker({ className, ...rest }: { className?: string }) {
   return (
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
-      className={cn(
-        "mr-2 -ml-2 inline-flex items-center text-xs text-zinc-600",
-        className,
-      )}
+      className={cn("mr-2 -ml-2 inline-flex items-center text-xs text-zinc-600", className)}
       {...rest}
     >
       <BranchPickerPrimitive.Previous asChild>
