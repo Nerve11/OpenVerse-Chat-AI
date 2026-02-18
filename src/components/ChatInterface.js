@@ -3,10 +3,6 @@ import Message from './Message';
 import { isPuterAvailable } from '../utils/puterApi';
 import { useTranslation } from 'react-i18next';
 
-/* eslint-disable no-undef */
-// Указываем ESLint, что puter - это глобальная переменная, определенная извне
-/* eslint-enable no-undef */
-
 const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode }) => {
   const messagesEndRef = useRef(null);
   const containerRef = useRef(null);
@@ -16,26 +12,24 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
   const lastMessageCount = useRef(messages.length);
   const { t } = useTranslation();
 
-  // Memoize the message components to prevent unnecessary re-rendering
-  const messageElements = useMemo(() => {
-    return messages.map(message => (
-      <Message key={`message-${message.id}`} message={message} onDiscussCode={onDiscussCode} />
-    ));
-  }, [messages, onDiscussCode]);
+  const messageElements = useMemo(
+    () => messages.map((m) => <Message key={`msg-${m.id}`} message={m} onDiscussCode={onDiscussCode} />),
+    [messages, onDiscussCode],
+  );
 
-  // Memoize the streaming message component
-  const streamingElement = useMemo(() => {
-    return streamingMessage ? (
-      <Message 
-        key={`streaming-${streamingMessage.id || 'current'}`} 
-        message={streamingMessage} 
-        streaming={true} 
-        onDiscussCode={onDiscussCode}
-      />
-    ) : null;
-  }, [streamingMessage, onDiscussCode]);
+  const streamingElement = useMemo(
+    () =>
+      streamingMessage ? (
+        <Message
+          key={`streaming-${streamingMessage.id || 'current'}`}
+          message={streamingMessage}
+          streaming
+          onDiscussCode={onDiscussCode}
+        />
+      ) : null,
+    [streamingMessage, onDiscussCode],
+  );
 
-  // Show Puter.js API error message if not loaded and no messages
   const apiErrorElement = useMemo(() => {
     if (!puterLoaded && messages.length === 0 && !isPuterAvailable()) {
       return (
@@ -48,115 +42,85 @@ const ChatInterface = ({ messages, streamingMessage, puterLoaded, onDiscussCode 
     return null;
   }, [puterLoaded, messages.length, t]);
 
-  // Check if user is near bottom of container
   const isNearBottom = () => {
     if (!containerRef.current) return true;
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-    return distanceFromBottom < 150; // Порог в пикселях
+    return scrollHeight - (scrollTop + clientHeight) < 150;
   };
 
-  // Track unread messages when user scrolls up
   useEffect(() => {
     if (isUserScrolling && messages.length > lastMessageCount.current) {
-      const newMessages = messages.length - lastMessageCount.current;
-      setUnreadCount(prev => prev + newMessages);
+      setUnreadCount((p) => p + (messages.length - lastMessageCount.current));
     }
     lastMessageCount.current = messages.length;
   }, [messages.length, isUserScrolling]);
 
-  // Handle scroll events to detect user scrolling
   const handleScroll = () => {
     if (!containerRef.current) return;
-    
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isAtBottom = scrollHeight - (scrollTop + clientHeight) < 10;
-    
-    // Если пользователь прокручивает вверх или не внизу
-    if (scrollTop < lastScrollTop.current || !isAtBottom) {
+    const atBottom = scrollHeight - (scrollTop + clientHeight) < 10;
+    if (scrollTop < lastScrollTop.current || !atBottom) {
       setIsUserScrolling(true);
-    } else if (isAtBottom) {
-      // Если пользователь прокрутил в самый низ
+    } else if (atBottom) {
       setIsUserScrolling(false);
-      setUnreadCount(0); // Сбросить счетчик непрочитанных
+      setUnreadCount(0);
     }
-    
     lastScrollTop.current = scrollTop;
   };
 
-  // Smooth scroll to bottom
   const scrollToBottom = (behavior = 'smooth') => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: behavior,
-        block: 'end',
-        inline: 'nearest'
-      });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
     setIsUserScrolling(false);
     setUnreadCount(0);
   };
 
-  // Auto-scroll when new messages arrive (only if user is near bottom)
   useEffect(() => {
     if (!isUserScrolling && isNearBottom()) {
-      // Небольшая задержка для того, чтобы DOM успел обновиться
-      requestAnimationFrame(() => {
-        scrollToBottom('smooth');
-      });
+      requestAnimationFrame(() => scrollToBottom('smooth'));
     }
   }, [messages, isUserScrolling]);
 
-  // Always auto-scroll during streaming if user is not manually scrolling
   useEffect(() => {
-    if (streamingMessage && !isUserScrolling) {
-      // При стриминге прокручиваем более агрессивно
-      const scrollInterval = setInterval(() => {
-        if (isNearBottom() && !isUserScrolling) {
-          scrollToBottom('auto'); // Используем 'auto' для более плавного опыта во время стриминга
-        }
-      }, 100);
-      
-      return () => clearInterval(scrollInterval);
-    }
+    if (!streamingMessage || isUserScrolling) return;
+    const id = setInterval(() => {
+      if (isNearBottom() && !isUserScrolling) scrollToBottom('auto');
+    }, 100);
+    return () => clearInterval(id);
   }, [streamingMessage, isUserScrolling]);
 
-  // Scroll to bottom on initial load
-  useEffect(() => {
-    scrollToBottom('auto');
-  }, []);
-
-  // НЕ показывать индикатор печати - он больше не нужен
-  // Индикатор был создан для случаев когда нет streamingMessage,
-  // но это состояние практически не встречается в реальном использовании
+  useEffect(() => { scrollToBottom('auto'); }, []);
 
   return (
-    <div 
-      className="messages-container" 
-      ref={containerRef}
-      onScroll={handleScroll}
-    >
+    <div className="chat-viewport" ref={containerRef} onScroll={handleScroll}>
+      {/* Welcome */}
       {messages.length === 0 && !streamingMessage && !apiErrorElement && (
-        <div className="welcome-message">
-          <h2>{t('app.welcome')}</h2>
+        <div className="chat-welcome">
+          <div className="chat-welcome__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          </div>
+          <h2 className="chat-welcome__title">{t('app.welcome')}</h2>
+          <p className="chat-welcome__subtitle">Start a conversation below.</p>
         </div>
       )}
+
       {apiErrorElement}
       {messageElements}
       {streamingElement}
       <div ref={messagesEndRef} style={{ height: '1px' }} />
-      
-      {/* Кнопка прокрутки вниз */}
+
+      {/* Scroll-to-bottom pill */}
       {isUserScrolling && (
-        <button 
-          className="scroll-to-bottom-btn"
+        <button
+          className="scroll-pill"
           onClick={() => scrollToBottom('smooth')}
-          aria-label="Прокрутить вниз"
+          aria-label="Scroll to bottom"
         >
-          <span className="scroll-icon">↓</span>
-          {unreadCount > 0 && (
-            <span className="unread-badge">{unreadCount}</span>
-          )}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="16" height="16">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+          {unreadCount > 0 && <span className="scroll-pill__badge">{unreadCount}</span>}
         </button>
       )}
     </div>
