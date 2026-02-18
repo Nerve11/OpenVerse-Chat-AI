@@ -23,7 +23,13 @@
     "clearChat": "Clear Chat",
     "addFiles": "Add Files",
     "temperature": "Temperature",
+    "maxTokens": "Max Tokens",
+    "reasoningEffort": "Reasoning Effort",
     "search": "Search"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out"
   },
   "message": {
     "copy": "Copy",
