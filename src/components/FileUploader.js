@@ -145,7 +145,6 @@ const FileUploader = ({ onFilesAdded, filesCount = 0, accept = DEFAULT_ACCEPT, m
       <label
         htmlFor={inputId}
         className={`add-files-button ${isProcessing ? 'disabled' : ''}`}
-        onClick={handleClickFallback}
         role="button"
         tabIndex={0}
         title={t('controls.addFilesTitle')}
@@ -168,5 +167,3 @@ const FileUploader = ({ onFilesAdded, filesCount = 0, accept = DEFAULT_ACCEPT, m
 };
 
 export default FileUploader;
-
-
